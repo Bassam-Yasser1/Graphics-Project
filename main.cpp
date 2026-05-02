@@ -39,7 +39,9 @@
 #define IDM_T5_DIRECT       2001
 #define IDM_T5_POLAR        2002
 #define IDM_T5_MIDPOINT     2003
-#define IDM_T5_ALL          2004
+
+// Global to track the currently selected drawing algorithm
+static ShapeType g_currentType = ShapeType::ELLIPSE_DIRECT;
 
 // Ellipse parameters used for Task 5 drawing
 static const int ELLIPSE_CX = 400;   // centre x
@@ -66,11 +68,13 @@ static HMENU CreateAppMenu()
 
     // --- Task 5 menu ---
     HMENU hT5 = CreatePopupMenu();
-    AppendMenu(hT5, MF_STRING, IDM_T5_DIRECT,   L"Draw Ellipse (&Direct)");
-    AppendMenu(hT5, MF_STRING, IDM_T5_POLAR,    L"Draw Ellipse (&Polar)");
-    AppendMenu(hT5, MF_STRING, IDM_T5_MIDPOINT, L"Draw Ellipse (&Midpoint)");
-    AppendMenu(hT5, MF_SEPARATOR, 0, NULL);
-    AppendMenu(hT5, MF_STRING, IDM_T5_ALL,      L"Draw &All (compare)");
+    AppendMenu(hT5, MF_STRING, IDM_T5_DIRECT,   L"Select Direct Ellipse");
+    AppendMenu(hT5, MF_STRING, IDM_T5_POLAR,    L"Select Polar Ellipse");
+    AppendMenu(hT5, MF_STRING, IDM_T5_MIDPOINT, L"Select Midpoint Ellipse");
+    
+    // Check the default item
+    CheckMenuItem(hT5, IDM_T5_DIRECT, MF_CHECKED);
+
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hT5,
                L"Task &5 – Ellipses");
 
@@ -96,23 +100,40 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         break;
     }
 
-    // ---- Example from the template: click to draw an ellipse
-    //      and add it to the shape list (Task 1 persistence) -----
+    // ---- Click to draw with the SELECTED algorithm (Task 1 & 5) -----
     case WM_LBUTTONDOWN:
     {
-        // Get click position and use it as the centre for a new ellipse
         int mx = LOWORD(lp);
         int my = HIWORD(lp);
 
-        // Add to shape list so Save/Load will include it
+        // Define a bounding box for the ellipse (80x50 radius)
         ShapeRecord rec;
-        rec.type = ShapeType::ELLIPSE;
+        rec.type = g_currentType;
         rec.x1 = mx - 80; rec.y1 = my - 50;
         rec.x2 = mx + 80; rec.y2 = my + 50;
+        
+        // Add to shape list for persistence
         g_shapes.push_back(rec);
 
+        // Draw it immediately
         hdc = GetDC(hwnd);
-        Ellipse(hdc, rec.x1, rec.y1, rec.x2, rec.y2);
+        int cx = mx;
+        int cy = my;
+        int a = 80;
+        int b = 50;
+
+        switch (g_currentType)
+        {
+        case ShapeType::ELLIPSE_DIRECT:
+            DrawEllipseDirect(hdc, cx, cy, a, b, RGB(0, 0, 220));
+            break;
+        case ShapeType::ELLIPSE_POLAR:
+            DrawEllipsePolar(hdc, cx, cy, a, b, RGB(0, 180, 0));
+            break;
+        case ShapeType::ELLIPSE_MIDPOINT:
+            DrawEllipseMidpoint(hdc, cx, cy, a, b, RGB(220, 0, 0));
+            break;
+        }
         ReleaseDC(hwnd, hdc);
         break;
     }
@@ -135,37 +156,21 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             DestroyWindow(hwnd);
             break;
 
-        // Task 5 – Ellipse Algorithms
+        // Task 5 – Ellipse Algorithms (Selection Mode)
         case IDM_T5_DIRECT:
-        {
-            hdc = GetDC(hwnd);
-            DrawEllipseDirect(hdc, ELLIPSE_CX, ELLIPSE_CY,
-                              ELLIPSE_A, ELLIPSE_B, RGB(0, 0, 220));
-            ReleaseDC(hwnd, hdc);
-            break;
-        }
         case IDM_T5_POLAR:
-        {
-            hdc = GetDC(hwnd);
-            DrawEllipsePolar(hdc, ELLIPSE_CX, ELLIPSE_CY,
-                             ELLIPSE_A, ELLIPSE_B, RGB(0, 180, 0));
-            ReleaseDC(hwnd, hdc);
-            break;
-        }
         case IDM_T5_MIDPOINT:
         {
-            hdc = GetDC(hwnd);
-            DrawEllipseMidpoint(hdc, ELLIPSE_CX, ELLIPSE_CY,
-                                ELLIPSE_A, ELLIPSE_B, RGB(220, 0, 0));
-            ReleaseDC(hwnd, hdc);
-            break;
-        }
-        case IDM_T5_ALL:
-        {
-            hdc = GetDC(hwnd);
-            DrawAllEllipses(hdc, ELLIPSE_CX, ELLIPSE_CY,
-                            ELLIPSE_A, ELLIPSE_B, ELLIPSE_OFF);
-            ReleaseDC(hwnd, hdc);
+            // Update the global selection
+            if (LOWORD(wp) == IDM_T5_DIRECT)   g_currentType = ShapeType::ELLIPSE_DIRECT;
+            if (LOWORD(wp) == IDM_T5_POLAR)    g_currentType = ShapeType::ELLIPSE_POLAR;
+            if (LOWORD(wp) == IDM_T5_MIDPOINT) g_currentType = ShapeType::ELLIPSE_MIDPOINT;
+
+            // Update menu checkmarks
+            HMENU hMenu = GetMenu(hwnd);
+            CheckMenuItem(hMenu, IDM_T5_DIRECT,   (g_currentType == ShapeType::ELLIPSE_DIRECT)   ? MF_CHECKED : MF_UNCHECKED);
+            CheckMenuItem(hMenu, IDM_T5_POLAR,    (g_currentType == ShapeType::ELLIPSE_POLAR)    ? MF_CHECKED : MF_UNCHECKED);
+            CheckMenuItem(hMenu, IDM_T5_MIDPOINT, (g_currentType == ShapeType::ELLIPSE_MIDPOINT) ? MF_CHECKED : MF_UNCHECKED);
             break;
         }
         }

@@ -11,7 +11,11 @@
 // -------------------------------------------------------
 
 // Supported shape types stored in the shape list
-enum class ShapeType { ELLIPSE };
+enum class ShapeType { 
+    ELLIPSE_DIRECT, 
+    ELLIPSE_POLAR, 
+    ELLIPSE_MIDPOINT 
+};
 
 // A generic shape record (extend with more shape types as needed)
 struct ShapeRecord

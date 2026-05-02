@@ -8,7 +8,7 @@
 // Internal helper – plot four symmetric points of an ellipse
 // around centre (cx, cy) given the offset pair (dx, dy).
 // -------------------------------------------------------
-static inline void PlotEllipsePoints(HDC hdc, int cx, int cy,
+static inline void Draw4Points(HDC hdc, int cx, int cy,
                                      int dx, int dy, COLORREF color)
 {
     SetPixel(hdc, cx + dx, cy + dy, color);
@@ -35,7 +35,7 @@ void DrawEllipseDirect(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
         double inner = 1.0 - (static_cast<double>(dx) * dx) / a2;
         if (inner < 0.0) inner = 0.0;
         int dy = static_cast<int>(std::round(b * std::sqrt(inner)));
-        PlotEllipsePoints(hdc, cx, cy, dx, dy, color);
+        Draw4Points(hdc, cx, cy, dx, dy, color);
     }
 
     // Region 2: iterate over y-axis (-b … +b) to fill in the steep parts
@@ -44,7 +44,7 @@ void DrawEllipseDirect(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
         double inner = 1.0 - (static_cast<double>(dy) * dy) / b2;
         if (inner < 0.0) inner = 0.0;
         int dx = static_cast<int>(std::round(a * std::sqrt(inner)));
-        PlotEllipsePoints(hdc, cx, cy, dx, dy, color);
+        Draw4Points(hdc, cx, cy, dx, dy, color);
     }
 }
 
@@ -93,7 +93,7 @@ void DrawEllipseMidpoint(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
 
     while (2LL * b2 * x < 2LL * a2 * y)
     {
-        PlotEllipsePoints(hdc, cx, cy, x, y, color);
+        Draw4Points(hdc, cx, cy, x, y, color);
 
         if (p1 < 0)
         {
@@ -118,7 +118,7 @@ void DrawEllipseMidpoint(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
 
     while (y >= 0)
     {
-        PlotEllipsePoints(hdc, cx, cy, x, y, color);
+        Draw4Points(hdc, cx, cy, x, y, color);
 
         if (p2 > 0)
         {
@@ -146,11 +146,11 @@ void DrawEllipseMidpoint(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
 void DrawAllEllipses(HDC hdc, int cx, int cy, int a, int b, int offset)
 {
     // Direct  – centred at (cx - offset, cy)
-    DrawEllipseDirect  (hdc, cx - offset, cy, a, b, RGB(0,   0,   220));
+    DrawEllipseDirect  (hdc, cx - offset,cy, a, b, RGB(0,0,220));
 
     // Polar   – centred at (cx, cy)
-    DrawEllipsePolar   (hdc, cx,          cy, a, b, RGB(0,   180,  0));
+    DrawEllipsePolar   (hdc, cx,cy, a, b, RGB(0,180,0));
 
     // Midpoint – centred at (cx + offset, cy)
-    DrawEllipseMidpoint(hdc, cx + offset, cy, a, b, RGB(220,  0,   0));
+    DrawEllipseMidpoint(hdc, cx + offset,cy, a, b, RGB(220,0,0));
 }

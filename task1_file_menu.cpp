@@ -4,6 +4,7 @@
 #include <commdlg.h>   // GetSaveFileName / GetOpenFileName
 #include <fstream>
 #include <sstream>
+#include "task5_ellipse_algorithms.h"
 #pragma comment(lib, "comdlg32.lib")
 
 // Definition of the global shape list shared across the application.
@@ -34,13 +35,19 @@ static OPENFILENAME BuildOFN(HWND hwnd, wchar_t* szFile, bool forSave)
 // -------------------------------------------------------
 static const char* ShapeTypeToStr(ShapeType t)
 {
-    switch (t) { case ShapeType::ELLIPSE: return "ELLIPSE"; }
+    switch (t) { 
+        case ShapeType::ELLIPSE_DIRECT:   return "ELLIPSE_DIRECT"; 
+        case ShapeType::ELLIPSE_POLAR:    return "ELLIPSE_POLAR"; 
+        case ShapeType::ELLIPSE_MIDPOINT: return "ELLIPSE_MIDPOINT"; 
+    }
     return "UNKNOWN";
 }
 static ShapeType StrToShapeType(const std::string& s)
 {
-    if (s == "ELLIPSE") return ShapeType::ELLIPSE;
-    return ShapeType::ELLIPSE; // default / fallback
+    if (s == "ELLIPSE_DIRECT")   return ShapeType::ELLIPSE_DIRECT;
+    if (s == "ELLIPSE_POLAR")    return ShapeType::ELLIPSE_POLAR;
+    if (s == "ELLIPSE_MIDPOINT") return ShapeType::ELLIPSE_MIDPOINT;
+    return ShapeType::ELLIPSE_DIRECT; // default / fallback
 }
 
 // -------------------------------------------------------
@@ -50,10 +57,21 @@ void RedrawShapes(HDC hdc)
 {
     for (const auto& sh : g_shapes)
     {
+        int cx = (sh.x1 + sh.x2) / 2;
+        int cy = (sh.y1 + sh.y2) / 2;
+        int a = abs(sh.x2 - sh.x1) / 2;
+        int b = abs(sh.y2 - sh.y1) / 2;
+
         switch (sh.type)
         {
-        case ShapeType::ELLIPSE:
-            Ellipse(hdc, sh.x1, sh.y1, sh.x2, sh.y2);
+        case ShapeType::ELLIPSE_DIRECT:
+            DrawEllipseDirect(hdc, cx, cy, a, b, RGB(0, 0, 220));
+            break;
+        case ShapeType::ELLIPSE_POLAR:
+            DrawEllipsePolar(hdc, cx, cy, a, b, RGB(0, 180, 0));
+            break;
+        case ShapeType::ELLIPSE_MIDPOINT:
+            DrawEllipseMidpoint(hdc, cx, cy, a, b, RGB(220, 0, 0));
             break;
         }
     }
