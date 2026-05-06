@@ -79,3 +79,45 @@ void ClipLineCircle(HDC hdc, int x1, int y1, int x2, int y2, int xc, int yc, int
         LineTo(hdc, nx2, ny2);
     }
 }
+
+// Intersection and Boundary Utilities
+bool InLeft(Point v, int edge) { return v.x >= edge; }
+bool InRight(Point v, int edge) { return v.x <= edge; }
+bool InTop(Point v, int edge) { return v.y >= edge; }
+bool InBottom(Point v, int edge) { return v.y <= edge; }
+
+Point VIntersect(Point v1, Point v2, int xedge) {
+    Point res;
+    res.x = xedge;
+    res.y = v1.y + (xedge - v1.x) * (v2.y - v1.y) / (v2.x - v1.x);
+    return res;
+}
+
+Point HIntersect(Point v1, Point v2, int yedge) {
+    Point res;
+    res.y = yedge;
+    res.x = v1.x + (yedge - v1.y) * (v2.x - v1.x) / (v2.y - v1.y);
+    return res;
+}
+
+// Generic Sutherland-Hodgman Iteration
+PointList ClipWithEdge(PointList p, int edge, bool (*IsIn)(Point, int), Point (*Intersect)(Point, Point, int)) {
+    PointList OutList;
+    if (p.empty()) return OutList;
+    Point v1 = p.back();
+    bool v1_in = IsIn(v1, edge);
+    for (int i = 0; i < (int)p.size(); i++) {
+        Point v2 = p[i];
+        bool v2_in = IsIn(v2, edge);
+        if (!v1_in && v2_in) {
+            OutList.push_back(Intersect(v1, v2, edge));
+            OutList.push_back(v2);
+        } else if (v1_in && v2_in) {
+            OutList.push_back(v2);
+        } else if (v1_in && !v2_in) {
+            OutList.push_back(Intersect(v1, v2, edge));
+        }
+        v1 = v2; v1_in = v2_in;
+    }
+    return OutList;
+}
