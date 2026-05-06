@@ -4,6 +4,8 @@
 
 struct Point { int x, y; };
 
+// list of points for the polygon
+typedef std::vector<Point> PointList;
 
 /** 
  * Clips a single point against a rectangular window.
@@ -31,3 +33,9 @@ void ClipPointCircle(HDC hdc, int x, int y, int xc, int yc, int R, COLORREF colo
  * Only the segments of the line falling within the radius R of center (xc, yc) are drawn
  */
 void ClipLineCircle(HDC hdc, int x1, int y1, int x2, int y2, int xc, int yc, int R);
+
+// Function to clip a polygon against a rectangular edge
+PointList ClipWithEdge(PointList p, int edge, bool (*IsIn)(Point, int), Point (*Intersect)(Point, Point, int));
+
+// Polygon clipping main function
+void PolygonClip(HDC hdc, PointList p, int xleft, int ytop, int xright, int ybottom);
