@@ -15,11 +15,8 @@
 //     Draw (Midpoint)   -> DrawEllipseMidpoint
 //     Draw All (side by side)
 // Enable UNICODE support for consistent character handling
-#if defined(UNICODE) && !defined(_UNICODE)
 #define _UNICODE
-#elif defined(_UNICODE) && !defined(UNICODE)
 #define UNICODE
-#endif
 
 // Include library for generic text mappings (_T macro)
 #include <tchar.h>
@@ -61,6 +58,7 @@
 // Global to track the currently selected drawing algorithm
 static int g_currentSelection = IDM_T5_DIRECT; 
 static std::vector<Point> g_mouseClicks;
+static ShapeType g_currentType = ShapeType::ELLIPSE_DIRECT;
 
 // Ellipse parameters used for Task 5 drawing
 static const int ELLIPSE_CX = 400;   // centre x
@@ -154,7 +152,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             rec.type = g_currentType;
             rec.x1 = mx - 80; rec.y1 = my - 50;
             rec.x2 = mx + 80; rec.y2 = my + 50;
-            g_shapes.push_back(rec);[cite: 1]
+            g_shapes.push_back(rec);
 
             if (g_currentSelection == IDM_T5_DIRECT) DrawEllipseDirect(hdc, mx, my, 80, 50, RGB(0, 0, 220));
             if (g_currentSelection == IDM_T5_POLAR)  DrawEllipsePolar(hdc, mx, my, 80, 50, RGB(0, 180, 0));
