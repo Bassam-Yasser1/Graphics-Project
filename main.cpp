@@ -156,9 +156,9 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             rec.x2 = mx + 80; rec.y2 = my + 50;
             g_shapes.push_back(rec);[cite: 1]
 
-            if (g_currentSelection == IDM_T5_DIRECT) DrawEllipseDirect(hdc, mx, my, 80, 50, RGB(0, 0, 220));[cite: 1]
-            if (g_currentSelection == IDM_T5_POLAR)  DrawEllipsePolar(hdc, mx, my, 80, 50, RGB(0, 180, 0));[cite: 1]
-            if (g_currentSelection == IDM_T5_MIDPOINT) DrawEllipseMidpoint(hdc, mx, my, 80, 50, RGB(220, 0, 0));[cite: 1]
+            if (g_currentSelection == IDM_T5_DIRECT) DrawEllipseDirect(hdc, mx, my, 80, 50, RGB(0, 0, 220));
+            if (g_currentSelection == IDM_T5_POLAR)  DrawEllipsePolar(hdc, mx, my, 80, 50, RGB(0, 180, 0));
+            if (g_currentSelection == IDM_T5_MIDPOINT) DrawEllipseMidpoint(hdc, mx, my, 80, 50, RGB(220, 0, 0));
             g_mouseClicks.clear();
         }
         
@@ -211,10 +211,10 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
     case WM_COMMAND:
         switch (LOWORD(wp))
         {
-        case IDM_FILE_CLEAR: ClearScreen(hwnd); break;[cite: 1]
-        case IDM_FILE_SAVE:  SaveToFile(hwnd); break;[cite: 1]
-        case IDM_FILE_LOAD:  LoadFromFile(hwnd); break;[cite: 1]
-        case IDM_FILE_EXIT:  DestroyWindow(hwnd); break;[cite: 1]
+        case IDM_FILE_CLEAR: ClearScreen(hwnd); break;
+        case IDM_FILE_SAVE:  SaveToFile(hwnd); break;
+        case IDM_FILE_LOAD:  LoadFromFile(hwnd); break;
+        case IDM_FILE_EXIT:  DestroyWindow(hwnd); break;
 
         // This handles ALL drawing tools (Ellipses, Circles, Clipping, Faces)
         default:
@@ -222,15 +222,15 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             g_mouseClicks.clear();           // Reset points when switching tools
 
             // Handle Ellipse-specific Enum (for your Task 1 persistence)
-            if (g_currentSelection == IDM_T5_DIRECT)   g_currentType = ShapeType::ELLIPSE_DIRECT;[cite: 1]
-            if (g_currentSelection == IDM_T5_POLAR)    g_currentType = ShapeType::ELLIPSE_POLAR;[cite: 1]
-            if (g_currentSelection == IDM_T5_MIDPOINT) g_currentType = ShapeType::ELLIPSE_MIDPOINT;[cite: 1]
+            if (g_currentSelection == IDM_T5_DIRECT)   g_currentType = ShapeType::ELLIPSE_DIRECT;
+            if (g_currentSelection == IDM_T5_POLAR)    g_currentType = ShapeType::ELLIPSE_POLAR;
+            if (g_currentSelection == IDM_T5_MIDPOINT) g_currentType = ShapeType::ELLIPSE_MIDPOINT;
 
             // Refresh menu checkmarks for Task 5
             HMENU hMenu = GetMenu(hwnd);
-            CheckMenuItem(hMenu, IDM_T5_DIRECT,   (g_currentSelection == IDM_T5_DIRECT)   ? MF_CHECKED : MF_UNCHECKED);[cite: 1]
-            CheckMenuItem(hMenu, IDM_T5_POLAR,    (g_currentSelection == IDM_T5_POLAR)    ? MF_CHECKED : MF_UNCHECKED);[cite: 1]
-            CheckMenuItem(hMenu, IDM_T5_MIDPOINT, (g_currentSelection == IDM_T5_MIDPOINT) ? MF_CHECKED : MF_UNCHECKED);[cite: 1]
+            CheckMenuItem(hMenu, IDM_T5_DIRECT,   (g_currentSelection == IDM_T5_DIRECT)   ? MF_CHECKED : MF_UNCHECKED);
+            CheckMenuItem(hMenu, IDM_T5_POLAR,    (g_currentSelection == IDM_T5_POLAR)    ? MF_CHECKED : MF_UNCHECKED);
+            CheckMenuItem(hMenu, IDM_T5_MIDPOINT, (g_currentSelection == IDM_T5_MIDPOINT) ? MF_CHECKED : MF_UNCHECKED);
             break;
         }
         break;
