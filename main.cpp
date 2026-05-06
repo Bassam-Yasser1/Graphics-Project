@@ -23,10 +23,14 @@
 
 // Include library for generic text mappings (_T macro)
 #include <tchar.h>
-
+#include <vector>
+#include <cmath>
 #include <windows.h>
 #include "task1_file_menu.h"
 #include "task5_ellipse_algorithms.h"
+#include "Circles.h"
+#include "Clipping.h"
+#include "SmileyFace.h"
 
 // -------------------------------------------------------
 // Menu IDs
@@ -40,8 +44,23 @@
 #define IDM_T5_POLAR        2002
 #define IDM_T5_MIDPOINT     2003
 
+
+#define IDM_CIRC_DIRECT     3001
+#define IDM_CIRC_POLAR      3002
+#define IDM_CIRC_IPOLAR     3003
+#define IDM_CIRC_MIDPOINT   3004
+#define IDM_CIRC_MOD_MID    3005
+
+#define IDM_CLIP_RECT       4001
+#define IDM_CLIP_SQUARE     4002
+#define IDM_CLIP_CIRCLE     4003
+
+#define IDM_FACE_HAPPY      5001
+#define IDM_FACE_SAD        5002
+
 // Global to track the currently selected drawing algorithm
-static ShapeType g_currentType = ShapeType::ELLIPSE_DIRECT;
+static int g_currentSelection = IDM_T5_DIRECT; 
+static std::vector<Point> g_mouseClicks;
 
 // Ellipse parameters used for Task 5 drawing
 static const int ELLIPSE_CX = 400;   // centre x
@@ -71,13 +90,31 @@ static HMENU CreateAppMenu()
     AppendMenu(hT5, MF_STRING, IDM_T5_DIRECT,   L"Select Direct Ellipse");
     AppendMenu(hT5, MF_STRING, IDM_T5_POLAR,    L"Select Polar Ellipse");
     AppendMenu(hT5, MF_STRING, IDM_T5_MIDPOINT, L"Select Midpoint Ellipse");
-    
-    // Check the default item
     CheckMenuItem(hT5, IDM_T5_DIRECT, MF_CHECKED);
+    AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hT5, L"Task &5 – Ellipses");
+    
+    // --- Circles menu ---
+    HMENU hCirc = CreatePopupMenu();
+    AppendMenu(hCirc, MF_STRING, IDM_CIRC_DIRECT,   L"Direct Circle");
+    AppendMenu(hCirc, MF_STRING, IDM_CIRC_POLAR,    L"Polar Circle");
+    AppendMenu(hCirc, MF_STRING, IDM_CIRC_IPOLAR,   L"Iterative Polar");
+    AppendMenu(hCirc, MF_STRING, IDM_CIRC_MIDPOINT, L"Midpoint Circle");
+    AppendMenu(hCirc, MF_STRING, IDM_CIRC_MOD_MID,  L"Modified Midpoint");
+    AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hCirc, L"&Circles");
 
-    AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hT5,
-               L"Task &5 – Ellipses");
+    // --- CLIPPING MENU ---
+    HMENU hClip = CreatePopupMenu();
+    AppendMenu(hClip, MF_STRING, IDM_CLIP_RECT,   L"Rectangle Window");
+    AppendMenu(hClip, MF_STRING, IDM_CLIP_SQUARE, L"Square Window");
+    AppendMenu(hClip, MF_STRING, IDM_CLIP_CIRCLE, L"Circle Window (Bonus)");
+    AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hClip, L"Cli&pping");
 
+    // --- SMILEY FACES MENU ---
+    HMENU hFace = CreatePopupMenu();
+    AppendMenu(hFace, MF_STRING, IDM_FACE_HAPPY, L"Happy Face");
+    AppendMenu(hFace, MF_STRING, IDM_FACE_SAD,   L"Sad Face");
+    AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hFace, L"&Smiley Faces");
+    
     return hMenuBar;
 }
 
@@ -100,40 +137,72 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         break;
     }
 
-    // ---- Click to draw with the SELECTED algorithm (Task 1 & 5) -----
+    // ---- Click to draw with the SELECTED algorithm -----
     case WM_LBUTTONDOWN:
     {
         int mx = LOWORD(lp);
         int my = HIWORD(lp);
-
-        // Define a bounding box for the ellipse (80x50 radius)
-        ShapeRecord rec;
-        rec.type = g_currentType;
-        rec.x1 = mx - 80; rec.y1 = my - 50;
-        rec.x2 = mx + 80; rec.y2 = my + 50;
-        
-        // Add to shape list for persistence
-        g_shapes.push_back(rec);
-
-        // Draw it immediately
         hdc = GetDC(hwnd);
-        int cx = mx;
-        int cy = my;
-        int a = 80;
-        int b = 50;
+        
+        // Add current click to our point buffer
+        g_mouseClicks.push_back({ mx, my });
 
-        switch (g_currentType)
+        // --- TASK 5: ELLIPSES (1 Click) ---
+        if (g_currentSelection >= 2001 && g_currentSelection <= 2003) 
         {
-        case ShapeType::ELLIPSE_DIRECT:
-            DrawEllipseDirect(hdc, cx, cy, a, b, RGB(0, 0, 220));
-            break;
-        case ShapeType::ELLIPSE_POLAR:
-            DrawEllipsePolar(hdc, cx, cy, a, b, RGB(0, 180, 0));
-            break;
-        case ShapeType::ELLIPSE_MIDPOINT:
-            DrawEllipseMidpoint(hdc, cx, cy, a, b, RGB(220, 0, 0));
-            break;
+            ShapeRecord rec;
+            rec.type = g_currentType;
+            rec.x1 = mx - 80; rec.y1 = my - 50;
+            rec.x2 = mx + 80; rec.y2 = my + 50;
+            g_shapes.push_back(rec);[cite: 1]
+
+            if (g_currentSelection == IDM_T5_DIRECT) DrawEllipseDirect(hdc, mx, my, 80, 50, RGB(0, 0, 220));[cite: 1]
+            if (g_currentSelection == IDM_T5_POLAR)  DrawEllipsePolar(hdc, mx, my, 80, 50, RGB(0, 180, 0));[cite: 1]
+            if (g_currentSelection == IDM_T5_MIDPOINT) DrawEllipseMidpoint(hdc, mx, my, 80, 50, RGB(220, 0, 0));[cite: 1]
+            g_mouseClicks.clear();
         }
+        
+        // --- TASK: CIRCLES (2 Clicks: Center, Radius Point) ---
+        else if (g_currentSelection >= 3001 && g_currentSelection <= 3005)
+        {
+            if (g_mouseClicks.size() == 2) {
+                int R = (int)sqrt(pow(g_mouseClicks[1].x - g_mouseClicks[0].x, 2) + 
+                                  pow(g_mouseClicks[1].y - g_mouseClicks[0].y, 2));
+                int xc = g_mouseClicks[0].x, yc = g_mouseClicks[0].y;
+
+                if (g_currentSelection == IDM_CIRC_DIRECT)   CircleDirect(hdc, xc, yc, R, RGB(0,0,0));
+                if (g_currentSelection == IDM_CIRC_POLAR)    CirclePolar(hdc, xc, yc, R, RGB(0,0,0));
+                if (g_currentSelection == IDM_CIRC_MIDPOINT) CircleMidpoint(hdc, xc, yc, R, RGB(0,0,0));
+                if (g_currentSelection == IDM_CIRC_IPOLAR)   CircleIterativePolar(hdc, xc, yc, R, RGB(0,0,0));
+                if (g_currentSelection == IDM_CIRC_MOD_MID)  CircleModifiedMidpoint(hdc, xc, yc, R, RGB(0,0,0));
+                g_mouseClicks.clear();
+            }
+        }
+        
+        // --- TASK: CLIPPING (4 Clicks: 2 for Window, 2 for Line) ---
+        else if (g_currentSelection >= 4001 && g_currentSelection <= 4003)
+        {
+            if (g_mouseClicks.size() == 4) {
+                if (g_currentSelection == IDM_CLIP_RECT || g_currentSelection == IDM_CLIP_SQUARE)
+                    ClipLineRect(hdc, g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y,
+                                 g_mouseClicks[0].x, g_mouseClicks[0].y, g_mouseClicks[1].x, g_mouseClicks[1].y);
+                
+                else if (g_currentSelection == IDM_CLIP_CIRCLE) {
+                    int R = (int)sqrt(pow(g_mouseClicks[1].x - g_mouseClicks[0].x, 2) + 
+                                      pow(g_mouseClicks[1].y - g_mouseClicks[0].y, 2));
+                    ClipLineCircle(hdc, g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y, 
+                                   g_mouseClicks[0].x, g_mouseClicks[0].y, R);
+                }
+                g_mouseClicks.clear();
+            }
+        }
+        
+        // --- TASK: SMILEY FACES (1 Click) ---
+        else if (g_currentSelection == IDM_FACE_HAPPY || g_currentSelection == IDM_FACE_SAD) {
+            DrawSmiley(hdc, mx, my, (g_currentSelection == IDM_FACE_HAPPY));
+            g_mouseClicks.clear();
+        }
+
         ReleaseDC(hwnd, hdc);
         break;
     }
@@ -142,53 +211,37 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
     case WM_COMMAND:
         switch (LOWORD(wp))
         {
-        // Task 1 – File Menu
-        case IDM_FILE_CLEAR:
-            ClearScreen(hwnd);
-            break;
-        case IDM_FILE_SAVE:
-            SaveToFile(hwnd);
-            break;
-        case IDM_FILE_LOAD:
-            LoadFromFile(hwnd);
-            break;
-        case IDM_FILE_EXIT:
-            DestroyWindow(hwnd);
-            break;
+        case IDM_FILE_CLEAR: ClearScreen(hwnd); break;[cite: 1]
+        case IDM_FILE_SAVE:  SaveToFile(hwnd); break;[cite: 1]
+        case IDM_FILE_LOAD:  LoadFromFile(hwnd); break;[cite: 1]
+        case IDM_FILE_EXIT:  DestroyWindow(hwnd); break;[cite: 1]
 
-        // Task 5 – Ellipse Algorithms (Selection Mode)
-        case IDM_T5_DIRECT:
-        case IDM_T5_POLAR:
-        case IDM_T5_MIDPOINT:
-        {
-            // Update the global selection
-            if (LOWORD(wp) == IDM_T5_DIRECT)   g_currentType = ShapeType::ELLIPSE_DIRECT;
-            if (LOWORD(wp) == IDM_T5_POLAR)    g_currentType = ShapeType::ELLIPSE_POLAR;
-            if (LOWORD(wp) == IDM_T5_MIDPOINT) g_currentType = ShapeType::ELLIPSE_MIDPOINT;
+        // This handles ALL drawing tools (Ellipses, Circles, Clipping, Faces)
+        default:
+            g_currentSelection = LOWORD(wp); // Update which tool is active
+            g_mouseClicks.clear();           // Reset points when switching tools
 
-            // Update menu checkmarks
+            // Handle Ellipse-specific Enum (for your Task 1 persistence)
+            if (g_currentSelection == IDM_T5_DIRECT)   g_currentType = ShapeType::ELLIPSE_DIRECT;[cite: 1]
+            if (g_currentSelection == IDM_T5_POLAR)    g_currentType = ShapeType::ELLIPSE_POLAR;[cite: 1]
+            if (g_currentSelection == IDM_T5_MIDPOINT) g_currentType = ShapeType::ELLIPSE_MIDPOINT;[cite: 1]
+
+            // Refresh menu checkmarks for Task 5
             HMENU hMenu = GetMenu(hwnd);
-            CheckMenuItem(hMenu, IDM_T5_DIRECT,   (g_currentType == ShapeType::ELLIPSE_DIRECT)   ? MF_CHECKED : MF_UNCHECKED);
-            CheckMenuItem(hMenu, IDM_T5_POLAR,    (g_currentType == ShapeType::ELLIPSE_POLAR)    ? MF_CHECKED : MF_UNCHECKED);
-            CheckMenuItem(hMenu, IDM_T5_MIDPOINT, (g_currentType == ShapeType::ELLIPSE_MIDPOINT) ? MF_CHECKED : MF_UNCHECKED);
+            CheckMenuItem(hMenu, IDM_T5_DIRECT,   (g_currentSelection == IDM_T5_DIRECT)   ? MF_CHECKED : MF_UNCHECKED);[cite: 1]
+            CheckMenuItem(hMenu, IDM_T5_POLAR,    (g_currentSelection == IDM_T5_POLAR)    ? MF_CHECKED : MF_UNCHECKED);[cite: 1]
+            CheckMenuItem(hMenu, IDM_T5_MIDPOINT, (g_currentSelection == IDM_T5_MIDPOINT) ? MF_CHECKED : MF_UNCHECKED);[cite: 1]
             break;
-        }
         }
         break;
 
     // ---- Standard window lifecycle -----------------------
-    case WM_CLOSE:
-        DestroyWindow(hwnd);
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-
-    default:
-        return DefWindowProc(hwnd, mcode, wp, lp);
+        case WM_CLOSE:   DestroyWindow(hwnd); break;
+        case WM_DESTROY: PostQuitMessage(0); break;
+        default:         return DefWindowProc(hwnd, mcode, wp, lp);
     }
-    return 0;
-}
+        return 0;
+    }
 
 // -------------------------------------------------------
 // WinMain – application entry point
@@ -196,30 +249,19 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
 int APIENTRY WinMain(HINSTANCE h, HINSTANCE p, LPSTR c, int nsh)
 {
     WNDCLASS wc{};
-    wc.cbClsExtra    = 0;
-    wc.cbWndExtra    = 0;
     wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    wc.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
     wc.hInstance     = h;
     wc.lpfnWndProc   = WndProc;
     wc.lpszClassName = L"GraphicsProjectClass";
-    wc.lpszMenuName  = NULL;
     wc.style         = CS_HREDRAW | CS_VREDRAW;
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindow(
-        L"GraphicsProjectClass",
-        L"Graphics Project – Task 1 & Task 5",
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT,
-        900, 650,
-        NULL, NULL, h, NULL
-    );
+    HWND hwnd = CreateWindow(L"GraphicsProjectClass", L"Computer Graphics - All Tasks Integrated",
+                             WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 650,
+                             NULL, NULL, h, NULL);
 
-    // Attach the menu bar
     SetMenu(hwnd, CreateAppMenu());
-
     ShowWindow(hwnd, nsh);
     UpdateWindow(hwnd);
 
@@ -229,5 +271,5 @@ int APIENTRY WinMain(HINSTANCE h, HINSTANCE p, LPSTR c, int nsh)
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    return static_cast<int>(msg.wParam);
+    return (int)msg.wParam;
 }
