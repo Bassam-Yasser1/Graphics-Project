@@ -1,4 +1,5 @@
 #include "Clipping.h"
+#include <cmath>
 
 union OutCode {
     unsigned ALL : 4;
