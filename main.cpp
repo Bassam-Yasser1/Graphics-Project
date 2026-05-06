@@ -180,18 +180,54 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         // --- TASK: CLIPPING (4 Clicks: 2 for Window, 2 for Line) ---
         else if (g_currentSelection >= 4001 && g_currentSelection <= 4003)
         {
+            // Log the click to console
+            printf("Clipping Click %d: (%d, %d)\n", (int)g_mouseClicks.size(), mx, my);
+
+            if (g_mouseClicks.size() == 2) {
+                printf(">> Clipping Window Defined.\n");
+                // Optional: Draw a temporary rectangle to show the window
+                Rectangle(hdc, g_mouseClicks[0].x, g_mouseClicks[0].y, g_mouseClicks[1].x, g_mouseClicks[1].y);
+            }
+
             if (g_mouseClicks.size() == 4) {
-                if (g_currentSelection == IDM_CLIP_RECT || g_currentSelection == IDM_CLIP_SQUARE)
+                int xmin = g_mouseClicks[0].x;
+                int ymin = g_mouseClicks[0].y;
+                int xmax = g_mouseClicks[1].x;
+                int ymax = g_mouseClicks[1].y;
+
+                // --- Case A: Rectangle/Square ---
+                if (g_currentSelection == IDM_CLIP_RECT || g_currentSelection == IDM_CLIP_SQUARE) {
+                    
+                    if (g_currentSelection == IDM_CLIP_SQUARE) {
+                        printf(">> Applying Square Logic...\n");
+                        int side = (std::max)(abs(xmax - xmin), abs(ymax - ymin));
+                        xmax = xmin + side;
+                        ymax = ymin + side;
+                        // Redraw the forced square
+                        Rectangle(hdc, xmin, ymin, xmax, ymax);
+                    }
+
+                    printf(">> Clipping Line from (%d,%d) to (%d,%d) against Rect\n", 
+                            g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y);
+                    
                     ClipLineRect(hdc, g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y,
-                                 g_mouseClicks[0].x, g_mouseClicks[0].y, g_mouseClicks[1].x, g_mouseClicks[1].y);
-                
-                else if (g_currentSelection == IDM_CLIP_CIRCLE) {
-                    int R = (int)sqrt(pow(g_mouseClicks[1].x - g_mouseClicks[0].x, 2) + 
-                                      pow(g_mouseClicks[1].y - g_mouseClicks[0].y, 2));
-                    ClipLineCircle(hdc, g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y, 
-                                   g_mouseClicks[0].x, g_mouseClicks[0].y, R);
+                                 xmin, ymin, xmax, ymax);
                 }
+                
+                // --- Case B: Circle (Bonus) ---
+                else if (g_currentSelection == IDM_CLIP_CIRCLE) {
+                    int R = (int)sqrt(pow(xmax - xmin, 2) + pow(ymax - ymin, 2));
+                    printf(">> Clipping Line against Circle: Center(%d,%d) Radius(%d)\n", xmin, ymin, R);
+                    
+                    // Draw the boundary circle
+                    Ellipse(hdc, xmin - R, ymin - R, xmin + R, ymin + R);
+                    
+                    ClipLineCircle(hdc, g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y, 
+                                   xmin, ymin, R);
+                }
+
                 g_mouseClicks.clear();
+                printf(">> Done. Points cleared. Start new window with next click.\n");
             }
         }
         
@@ -246,6 +282,10 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
 // -------------------------------------------------------
 int APIENTRY WinMain(HINSTANCE h, HINSTANCE p, LPSTR c, int nsh)
 {
+    AllocConsole(); 
+    freopen("CONOUT$", "w", stdout); 
+    printf("Console Initialized. Graphics Project Running...\n");
+    
     WNDCLASS wc{};
     wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
