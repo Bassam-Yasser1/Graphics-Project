@@ -23,6 +23,7 @@
 #include <vector>
 #include <cmath>
 #include <windows.h>
+#include <algorithm>
 #include "task1_file_menu.h"
 #include "task5_ellipse_algorithms.h"
 #include "Circles.h"
@@ -176,59 +177,32 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                 g_mouseClicks.clear();
             }
         }
+
+        // --- TASK: CLIPPING HANDLER (L-Click to collect points) ---
         
-        // --- TASK: CLIPPING (4 Clicks: 2 for Window, 2 for Line) ---
         else if (g_currentSelection >= 4001 && g_currentSelection <= 4003)
         {
-            // Log the click to console
-            printf("Clipping Click %d: (%d, %d)\n", (int)g_mouseClicks.size(), mx, my);
-
+            // Clicks 1 & 2 define the Window
             if (g_mouseClicks.size() == 2) {
-                printf(">> Clipping Window Defined.\n");
-                // Optional: Draw a temporary rectangle to show the window
-                Rectangle(hdc, g_mouseClicks[0].x, g_mouseClicks[0].y, g_mouseClicks[1].x, g_mouseClicks[1].y);
-            }
+                int xmin = (std::min)(g_mouseClicks[0].x, g_mouseClicks[1].x);
+                int ymin = (std::min)(g_mouseClicks[0].y, g_mouseClicks[1].y);
+                int xmax = (std::max)(g_mouseClicks[0].x, g_mouseClicks[1].x);
+                int ymax = (std::max)(g_mouseClicks[0].y, g_mouseClicks[1].y);
 
-            if (g_mouseClicks.size() == 4) {
-                int xmin = g_mouseClicks[0].x;
-                int ymin = g_mouseClicks[0].y;
-                int xmax = g_mouseClicks[1].x;
-                int ymax = g_mouseClicks[1].y;
-
-                // --- Case A: Rectangle/Square ---
-                if (g_currentSelection == IDM_CLIP_RECT || g_currentSelection == IDM_CLIP_SQUARE) {
-                    
-                    if (g_currentSelection == IDM_CLIP_SQUARE) {
-                        printf(">> Applying Square Logic...\n");
-                        int side = (std::max)(abs(xmax - xmin), abs(ymax - ymin));
-                        xmax = xmin + side;
-                        ymax = ymin + side;
-                        // Redraw the forced square
-                        Rectangle(hdc, xmin, ymin, xmax, ymax);
-                    }
-
-                    printf(">> Clipping Line from (%d,%d) to (%d,%d) against Rect\n", 
-                            g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y);
-                    
-                    ClipLineRect(hdc, g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y,
-                                 xmin, ymin, xmax, ymax);
-                }
-                
-                // --- Case B: Circle (Bonus) ---
+                if (g_currentSelection == IDM_CLIP_RECT) {
+                    Rectangle(hdc, xmin, ymin, xmax, ymax);
+                } 
+                else if (g_currentSelection == IDM_CLIP_SQUARE) {
+                    int side = (std::max)(abs(xmax - xmin), abs(ymax - ymin));
+                    Rectangle(hdc, xmin, ymin, xmin + side, ymin + side);
+                } 
                 else if (g_currentSelection == IDM_CLIP_CIRCLE) {
                     int R = (int)sqrt(pow(xmax - xmin, 2) + pow(ymax - ymin, 2));
-                    printf(">> Clipping Line against Circle: Center(%d,%d) Radius(%d)\n", xmin, ymin, R);
-                    
-                    // Draw the boundary circle
                     Ellipse(hdc, xmin - R, ymin - R, xmin + R, ymin + R);
-                    
-                    ClipLineCircle(hdc, g_mouseClicks[2].x, g_mouseClicks[2].y, g_mouseClicks[3].x, g_mouseClicks[3].y, 
-                                   xmin, ymin, R);
                 }
-
-                g_mouseClicks.clear();
-                printf(">> Done. Points cleared. Start new window with next click.\n");
+                printf(">> Window Set. Now click points for the Shape, then Right-Click to Clip.\n");
             }
+            
         }
         
         // --- TASK: SMILEY FACES (1 Click) ---
@@ -241,6 +215,144 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         break;
     }
 
+case WM_RBUTTONDOWN:
+{
+    if (g_currentSelection >= 4001 && g_currentSelection <= 4003 && g_mouseClicks.size() >= 3) 
+    {
+        HDC hdc = GetDC(hwnd);
+        
+        // 1. Setup Window Boundaries
+        int xmin = (std::min)((int)g_mouseClicks[0].x, (int)g_mouseClicks[1].x);
+        int ymin = (std::min)((int)g_mouseClicks[0].y, (int)g_mouseClicks[1].y);
+        int xmax = (std::max)((int)g_mouseClicks[0].x, (int)g_mouseClicks[1].x);
+        int ymax = (std::max)((int)g_mouseClicks[0].y, (int)g_mouseClicks[1].y);
+
+        if (g_currentSelection == IDM_CLIP_SQUARE) {
+            int side = (std::max)(abs(xmax - xmin), abs(ymax - ymin));
+            xmax = xmin + side; ymax = ymin + side;
+        }
+        int R = (int)sqrt(pow(xmax - xmin, 2) + pow(ymax - ymin, 2));
+
+        // --- CASE A: POINT CLIPPING (Exactly 3 clicks total) ---
+        if (g_mouseClicks.size() == 3) {
+            int px = (int)g_mouseClicks[2].x;
+            int py = (int)g_mouseClicks[2].y;
+            bool inside = false;
+
+            if (g_currentSelection == IDM_CLIP_CIRCLE)
+                inside = (sqrt(pow(px - xmin, 2) + pow(py - ymin, 2)) <= R);
+            else
+                inside = (px >= xmin && px <= xmax && py >= ymin && py <= ymax);
+
+            if (inside) SetPixel(hdc, px, py, RGB(255, 0, 0));
+            printf(">> Point Clipped.\n");
+        }
+        
+        // --- CASE B: LINE CLIPPING (Exactly 4 clicks total) ---
+        else if (g_mouseClicks.size() == 4) {
+            int x1 = g_mouseClicks[2].x;
+            int y1 = g_mouseClicks[2].y;
+            int x2 = g_mouseClicks[3].x;
+            int y2 = g_mouseClicks[3].y;
+
+            if (g_currentSelection == IDM_CLIP_CIRCLE) {
+                double cx = (double)g_mouseClicks[0].x; 
+                double cy = (double)g_mouseClicks[0].y;
+                
+                double dx = (double)x2 - x1;
+                double dy = (double)y2 - y1;
+
+                // Quadratic coefficients
+                double a = dx * dx + dy * dy;
+                double b = 2 * (dx * (x1 - cx) + dy * (y1 - cy));
+                double c = pow(x1 - cx, 2) + pow(y1 - cy, 2) - (double)R * R;
+                
+                double discriminant = b * b - 4 * a * c;
+
+                if (discriminant >= 0) {
+                    double sqrtDet = sqrt(discriminant);
+                    double t1 = (-b - sqrtDet) / (2 * a);
+                    double t2 = (-b + sqrtDet) / (2 * a);
+
+                    // Clip the segment to the [0, 1] range
+                    double tStart = (std::max)(0.0, (std::min)(1.0, t1));
+                    double tEnd = (std::max)(0.0, (std::min)(1.0, t2));
+
+                    if (tStart < tEnd) {
+                        int ix1 = x1 + (int)(tStart * dx);
+                        int iy1 = y1 + (int)(tStart * dy);
+                        int ix2 = x1 + (int)(tEnd * dx);
+                        int iy2 = y1 + (int)(tEnd * dy);
+
+                        // Force the drawing color to Red so it's visible against the window
+                        HPEN hPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+                        SelectObject(hdc, hPen);
+                        
+                        MoveToEx(hdc, ix1, iy1, NULL);
+                        LineTo(hdc, ix2, iy2);
+                        
+                        DeleteObject(hPen);
+                        printf(">> Line Clipped at (%d,%d)\n", ix1, iy1);
+                    }
+                }
+            } else {
+                // Rectangle/Square Clipping
+                ClipLineRect(hdc, x1, y1, x2, y2, xmin, ymin, xmax, ymax);
+            }
+        }
+
+        // --- CASE C: POLYGON CLIPPING (5+ clicks, Rect/Square Only) ---
+        else if (g_mouseClicks.size() >= 5 && g_currentSelection != IDM_CLIP_CIRCLE) {
+            std::vector<Point> vlist;
+            for (size_t i = 2; i < g_mouseClicks.size(); i++) {
+                Point tempP; tempP.x = (double)g_mouseClicks[i].x; tempP.y = (double)g_mouseClicks[i].y;
+                vlist.push_back(tempP);
+            }
+
+            int edges[] = { xmin, ymin, xmax, ymax };
+            for (int i = 0; i < 4; i++) {
+                std::vector<Point> nextList;
+                if (vlist.empty()) break;
+                Point v1 = vlist.back();
+                for (Point v2 : vlist) {
+                    bool v1_in, v2_in; Point inter;
+                    if (i == 0) { v1_in = v1.x >= edges[i]; v2_in = v2.x >= edges[i]; }
+                    else if (i == 1) { v1_in = v1.y >= edges[i]; v2_in = v2.y >= edges[i]; }
+                    else if (i == 2) { v1_in = v1.x <= edges[i]; v2_in = v2.x <= edges[i]; }
+                    else { v1_in = v1.y <= edges[i]; v2_in = v2.y <= edges[i]; }
+
+                    if (v1_in != v2_in) {
+                        if (i == 0 || i == 2) { 
+                            inter.x = edges[i]; 
+                            inter.y = v1.y + (edges[i] - v1.x) * (v2.y - v1.y) / (v2.x - v1.x); 
+                        } else { 
+                            inter.y = edges[i]; 
+                            inter.x = v1.x + (edges[i] - v1.y) * (v2.x - v1.x) / (v2.y - v1.y); 
+                        }
+                    }
+                    if (!v1_in && v2_in) { nextList.push_back(inter); nextList.push_back(v2); }
+                    else if (v1_in && v2_in) nextList.push_back(v2);
+                    else if (v1_in && !v2_in) nextList.push_back(inter);
+                    v1 = v2;
+                }
+                vlist = nextList;
+            }
+            if (!vlist.empty()) {
+                Point p1 = vlist.back();
+                for (const auto& p2 : vlist) {
+                    MoveToEx(hdc, (int)p1.x, (int)p1.y, NULL);
+                    LineTo(hdc, (int)p2.x, (int)p2.y);
+                    p1 = p2;
+                }
+            }
+            printf(">> Polygon Clipped.\n");
+        }
+
+        g_mouseClicks.clear(); 
+        ReleaseDC(hwnd, hdc);
+    }
+    break;
+}
     // ---- Menu commands -----------------------------------
     case WM_COMMAND:
         switch (LOWORD(wp))
