@@ -1,5 +1,8 @@
 #include "Clipping.h"
 #include <cmath>
+#include <algorithm> 
+
+using namespace std;
 
 union OutCode {
     unsigned ALL : 4;
@@ -17,29 +20,62 @@ void ClipLineRect(HDC hdc, int x1, int y1, int x2, int y2, int xmin, int ymin, i
     OutCode out1 = GetOutCode(x1, y1, xmin, ymin, xmax, ymax);
     OutCode out2 = GetOutCode(x2, y2, xmin, ymin, xmax, ymax);
     while (true) {
-        if (!(out1.ALL | out2.ALL)) { // Accept
+        if (!(out1.ALL | out2.ALL)) { 
             MoveToEx(hdc, x1, y1, NULL); LineTo(hdc, x2, y2); break;
-        } else if (out1.ALL & out2.ALL) break; // Reject
+        } else if (out1.ALL & out2.ALL) break; 
         else {
-            int x, y;
+            double x, y;
             OutCode outout = out1.ALL ? out1 : out2;
-            if (outout.left) { x = xmin; y = y1 + (xmin - x1) * (y2 - y1) / (x2 - x1); }
-            else if (outout.right) { x = xmax; y = y1 + (xmax - x1) * (y2 - y1) / (x2 - x1); }
-            else if (outout.top) { y = ymin; x = x1 + (ymin - y1) * (x2 - x1) / (y2 - y1); }
-            else { y = ymax; x = x1 + (ymax - y1) * (x2 - x1) / (y2 - y1); }
+            if (outout.top) {
+                y = ymin;
+                x = x1 + (double)(x2 - x1) * (ymin - y1) / (y2 - y1);
+            } else if (outout.bottom) {
+                y = ymax;
+                x = x1 + (double)(x2 - x1) * (ymax - y1) / (y2 - y1);
+            } else if (outout.right) {
+                x = xmax;
+                y = y1 + (double)(y2 - y1) * (xmax - x1) / (x2 - x1);
+            } else if (outout.left) {
+                x = xmin;
+                y = y1 + (double)(y2 - y1) * (xmin - x1) / (x2 - x1);
+            }
             
-            if (outout.ALL == out1.ALL) { x1 = x; y1 = y; out1 = GetOutCode(x1, y1, xmin, ymin, xmax, ymax); }
-            else { x2 = x; y2 = y; out2 = GetOutCode(x2, y2, xmin, ymin, xmax, ymax); }
+            if (outout.ALL == out1.ALL) { 
+                x1 = (int)x; y1 = (int)y; 
+                out1 = GetOutCode(x1, y1, xmin, ymin, xmax, ymax); 
+            } else { 
+                x2 = (int)x; y2 = (int)y; 
+                out2 = GetOutCode(x2, y2, xmin, ymin, xmax, ymax); 
+            }
         }
     }
 }
 
 void ClipLineCircle(HDC hdc, int x1, int y1, int x2, int y2, int xc, int yc, int R) {
-    // Simple point-in-circle check for start/end
-    auto isIn = [&](int px, int py) {
-        return (pow(px - xc, 2) + pow(py - yc, 2)) <= R * R;
-    };
-    if (isIn(x1, y1) && isIn(x2, y2)) {
-        MoveToEx(hdc, x1, y1, NULL); LineTo(hdc, x2, y2);
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    double ax = x1 - xc;
+    double ay = y1 - yc;
+
+    double a = dx * dx + dy * dy;
+    double b = 2 * (ax * dx + ay * dy);
+    double c = ax * ax + ay * ay - (double)R * R;
+    double disc = b * b - 4 * a * c;
+
+    if (disc < 0) return; 
+
+    double u1 = (-b - sqrt(disc)) / (2 * a);
+    double u2 = (-b + sqrt(disc)) / (2 * a);
+
+    double tmin = max(0.0, min(u1, u2));
+    double tmax = min(1.0, max(u1, u2));
+
+    if (tmin < tmax) {
+        int nx1 = x1 + tmin * dx;
+        int ny1 = y1 + tmin * dy;
+        int nx2 = x1 + tmax * dx;
+        int ny2 = y1 + tmax * dy;
+        MoveToEx(hdc, nx1, ny1, NULL);
+        LineTo(hdc, nx2, ny2);
     }
 }
