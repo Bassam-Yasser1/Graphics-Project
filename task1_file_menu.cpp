@@ -1,5 +1,12 @@
 // task1_file_menu.cpp
 // Task 1 – File Menu: Clear / Save / Load shapes
+#ifndef UNICODE
+#define UNICODE
+#endif
+#ifndef _UNICODE
+#define _UNICODE
+#endif
+
 #include "task1_file_menu.h"
 #include <commdlg.h>   // GetSaveFileName / GetOpenFileName
 #include <fstream>
