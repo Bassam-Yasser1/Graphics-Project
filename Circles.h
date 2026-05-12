@@ -1,20 +1,20 @@
 #pragma once
 #include <windows.h>
 
-// Draws 8 symmetric points for every (x, y) coordinate to optimize circle rendering.
+// Draw 8 symmetric points of the circle using circle symmetry around the center (xc, yc)
 void Draw8Points(HDC hdc, int xc, int yc, int x, int y, COLORREF color);
 
-// 1. Direct Circle Algorithm: Uses the Cartesian equation (x^2 + y^2 = R^2)
+// Direct circle drawing algo using the circle equation: x² + y² = R²
 void CircleDirect(HDC hdc, int xc, int yc, int R, COLORREF color);
 
-// 2. Polar Circle Algorithm: Uses trigonometric functions (R*cos(theta), R*sin(theta))
+// Polar circle drawing algo using the polar equation of a circle: x = R * cos(theta), y = R * sin(theta)
 void CirclePolar(HDC hdc, int xc, int yc, int R, COLORREF color);
 
-// 3. Iterative Polar Algorithm: Optimizes Polar by using incremental angle calculations
+// Iterative polar circle algo avoiding repeated sin/cos calculations
 void CircleIterativePolar(HDC hdc, int xc, int yc, int R, COLORREF color);
 
-// 4. Midpoint Circle Algorithm: Uses a decision variable to choose the next pixel
+// Midpoint circle algo using decision parameter to choose next pixel
 void CircleMidpoint(HDC hdc, int xc, int yc, int R, COLORREF color);
 
-// 5. Modified Midpoint: An optimized version of Midpoint using second-order differences
+// Modified midpoint circle algo using incremental updates
 void CircleModifiedMidpoint(HDC hdc, int xc, int yc, int R, COLORREF color);
