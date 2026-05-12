@@ -1,24 +1,16 @@
-// Preferences.cpp
 #define UNICODE
 #define _UNICODE
 #include "Preferences.h"
-#include <commdlg.h>   // ChooseColor
+#include <commdlg.h>   
 
-// -------------------------------------------------------
-// a) White background
-//    Fills the entire client area with white and requests
-//    a repaint.  The WM_ERASEBKGND / WM_PAINT handlers
-//    will keep it white afterwards because we also update
-//    the class background brush (see PrefSetWhiteBackground).
-// -------------------------------------------------------
+// Change background to white
 void PrefSetWhiteBackground(HWND hwnd)
 {
-    // Force the class brush to WHITE_BRUSH so every
-    // subsequent WM_ERASEBKGND uses white.
+    // Force the class brush to WHITE_BRUSH so every subsequent WM_ERASEBKGND uses white
     SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND,
                     (LONG_PTR)GetStockObject(WHITE_BRUSH));
 
-    // Immediately fill the current client rect with white.
+    //  fill the current client rect with white
     HDC  hdc  = GetDC(hwnd);
     RECT rect;
     GetClientRect(hwnd, &rect);
@@ -28,29 +20,21 @@ void PrefSetWhiteBackground(HWND hwnd)
     InvalidateRect(hwnd, NULL, TRUE);
 }
 
-// -------------------------------------------------------
-// b) Change cursor
-//    Loads one of the system stock cursors and sets it as
-//    the class cursor so it applies everywhere in the window.
-// -------------------------------------------------------
+// Change cursor shape
 void PrefSetCursor(HWND hwnd, LPCWSTR cursorId)
 {
+    // Load the specified cursor and set it as the class cursor
     HCURSOR hCur = LoadCursor(NULL, cursorId);
     if (!hCur) return;
-
+    // Update the class cursor so it applies to the entire window
     SetClassLongPtr(hwnd, GCLP_HCURSOR, (LONG_PTR)hCur);
 
-    // Force Windows to re-read the class cursor immediately.
+    // Force Windows to re-read the class cursor 
     SetCursor(hCur);
 }
 
-// -------------------------------------------------------
-// c) Colour picker
-//    Opens the standard Windows ChooseColor dialog.
-//    Returns the selected colour, or currentColor on cancel.
-// -------------------------------------------------------
 
-// Persistent custom-colour array (survives across calls within a session).
+// open colour picker dialog and return chosen colour
 static COLORREF g_customColors[16] = {
     RGB(255,255,255), RGB(0,0,0),       RGB(255,0,0),   RGB(0,255,0),
     RGB(0,0,255),     RGB(255,255,0),   RGB(0,255,255), RGB(255,0,255),
@@ -58,17 +42,22 @@ static COLORREF g_customColors[16] = {
     RGB(0,128,128),   RGB(128,0,128),   RGB(128,128,128),RGB(192,192,192)
 };
 
+// Open the standard Windows colour picker dialog and return the chosen colour.
 COLORREF PrefChooseColor(HWND hwnd, COLORREF currentColor)
 {
+    
     CHOOSECOLOR cc   = {};
     cc.lStructSize   = sizeof(cc);
+    // Set initial colour selection to the current drawing colour
     cc.hwndOwner     = hwnd;
+    // Provide custom colours array for the dialog
     cc.rgbResult     = currentColor;
     cc.lpCustColors  = g_customColors;
     cc.Flags         = CC_FULLOPEN | CC_RGBINIT;
 
+    // Display the dialog and return the chosen colour
     if (ChooseColor(&cc))
         return cc.rgbResult;
 
-    return currentColor;   // user cancelled – keep old colour
+    return currentColor;   // keep old colour
 }
