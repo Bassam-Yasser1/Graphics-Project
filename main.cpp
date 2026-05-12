@@ -1,21 +1,16 @@
-// main.cpp
-// Entry point for the Computer Graphics project.
-// Links Task 1 (File Menu), Task 5 (Ellipse Algorithms),
-// Lines, Filling, Curves, Clipping, SmileyFace, and Preferences.
-//
-// Menu layout:
-//   File          | Clear / Save / Load / Exit
-//   Task 5        | Direct / Polar / Midpoint Ellipse      (1 click)
-//   Circles       | Direct / Polar / Iterative / Midpoint / Modified   (2 clicks)
-//   Lines         | DDA / Midpoint / Parametric            (2 clicks)
-//   Filling       | Circle-Lines / Circle-Circles          (1 click + quarter dialog)
-//                 | Square-Hermite / Rect-Bezier           (2 clicks)
-//                 | Convex / Non-Convex polygon            (N clicks + Right-click)
-//                 | Flood Fill Recursive / Iterative       (1 click)
-//   Curves        | Cardinal Spline                        (N clicks + Right-click)
-//   Clipping      | Rectangle / Square / Circle Window
-//   Smiley Faces  | Happy / Sad
-//   Preferences   | White Background / Change Cursor / Choose Color
+/* Menu layout:
+   File          | Clear / Save / Load / Exit
+   Task 5        | Direct / Polar / Midpoint Ellipse      (1 click)
+   Circles       | Direct / Polar / Iterative / Midpoint / Modified   (2 clicks)
+   Lines         | DDA / Midpoint / Parametric            (2 clicks)
+   Filling       | Circle-Lines / Circle-Circles          (1 click + quarter dialog)
+                | Square-Hermite / Rect-Bezier           (2 clicks)
+                 | Convex / Non-Convex polygon            (N clicks + Right-click)
+                 | Flood Fill Recursive / Iterative       (1 click)
+   Curves        | Cardinal Spline                        (N clicks + Right-click)
+   Clipping      | Rectangle / Square / Circle Window
+   Smiley Faces  | Happy / Sad
+   Preferences   | White Background / Change Cursor / Choose Color*/
 
 #define _UNICODE
 #define UNICODE
@@ -35,21 +30,20 @@
 #include "Curves.h"
 #include "Preferences.h"
 
-// -------------------------------------------------------
 // Menu IDs
-// -------------------------------------------------------
+
 // File
 #define IDM_FILE_CLEAR      1001
 #define IDM_FILE_SAVE       1002
 #define IDM_FILE_LOAD       1003
 #define IDM_FILE_EXIT       1004
 
-// Task 5 - Ellipses
+// Ellipses
 #define IDM_T5_DIRECT       2001
 #define IDM_T5_POLAR        2002
 #define IDM_T5_MIDPOINT     2003
 
-// Circles (unchanged from original)
+// Circles 
 #define IDM_CIRC_DIRECT     3001
 #define IDM_CIRC_POLAR      3002
 #define IDM_CIRC_IPOLAR     3003
@@ -91,22 +85,18 @@
 #define IDM_PREF_CURSOR_IBEAM   9005
 #define IDM_PREF_COLOR          9006
 
-// -------------------------------------------------------
 // Global state
-// -------------------------------------------------------
 static int  g_currentSelection = IDM_T5_DIRECT;
 static std::vector<Point> g_mouseClicks;
 static ShapeType g_currentType = ShapeType::ELLIPSE_DIRECT;
 
-// Active drawing colour - all algorithms use this
+// Active drawing colour 
 static COLORREF g_drawColor = RGB(0, 0, 0);
 
-// Quarter for circle-fill functions (1-4)
+// Quarter for circle-fill functions (1=top-right, 2=top-left, 3=bottom-left, 4=bottom-right)
 static int g_fillQuarter = 1;
 
-// -------------------------------------------------------
-// Helper: ask fill quarter via cascaded MessageBox
-// -------------------------------------------------------
+// Ask fill quarter via cascaded MessageBox
 static int AskFillQuarter(HWND hwnd)
 {
     int choice = MessageBox(hwnd,
@@ -127,14 +117,12 @@ static int AskFillQuarter(HWND hwnd)
     }
 }
 
-// -------------------------------------------------------
 // CreateAppMenu
-// -------------------------------------------------------
 static HMENU CreateAppMenu()
 {
     HMENU hMenuBar = CreateMenu();
 
-    // --- File ---
+    //  File 
     HMENU hFile = CreatePopupMenu();
     AppendMenu(hFile, MF_STRING,    IDM_FILE_CLEAR, L"&Clear");
     AppendMenu(hFile, MF_STRING,    IDM_FILE_SAVE,  L"&Save...");
@@ -143,7 +131,7 @@ static HMENU CreateAppMenu()
     AppendMenu(hFile, MF_STRING,    IDM_FILE_EXIT,  L"E&xit");
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hFile, L"&File");
 
-    // --- Task 5 - Ellipses ---
+    // Ellipses 
     HMENU hT5 = CreatePopupMenu();
     AppendMenu(hT5, MF_STRING, IDM_T5_DIRECT,   L"Select Direct Ellipse");
     AppendMenu(hT5, MF_STRING, IDM_T5_POLAR,    L"Select Polar Ellipse");
@@ -151,7 +139,7 @@ static HMENU CreateAppMenu()
     CheckMenuItem(hT5, IDM_T5_DIRECT, MF_CHECKED);
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hT5, L"Ellipses");
 
-    // --- Circles (identical to original) ---
+    //  Circles 
     HMENU hCirc = CreatePopupMenu();
     AppendMenu(hCirc, MF_STRING, IDM_CIRC_DIRECT,   L"Direct Circle");
     AppendMenu(hCirc, MF_STRING, IDM_CIRC_POLAR,    L"Polar Circle");
@@ -160,14 +148,14 @@ static HMENU CreateAppMenu()
     AppendMenu(hCirc, MF_STRING, IDM_CIRC_MOD_MID,  L"Modified Midpoint");
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hCirc, L"&Circles");
 
-    // --- Lines ---
+    //  Lines 
     HMENU hLine = CreatePopupMenu();
     AppendMenu(hLine, MF_STRING, IDM_LINE_DDA,        L"DDA Line");
     AppendMenu(hLine, MF_STRING, IDM_LINE_MIDPOINT,   L"Midpoint Line");
     AppendMenu(hLine, MF_STRING, IDM_LINE_PARAMETRIC, L"Parametric Line");
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hLine, L"&Lines");
 
-    // --- Filling ---
+    //  Filling 
     HMENU hFill = CreatePopupMenu();
     AppendMenu(hFill, MF_STRING,    IDM_FILL_CIRC_LINES,   L"Fill Circle with Lines (Quarter)");
     AppendMenu(hFill, MF_STRING,    IDM_FILL_CIRC_CIRCLES, L"Fill Circle with Circles (Quarter)");
@@ -182,25 +170,25 @@ static HMENU CreateAppMenu()
     AppendMenu(hFill, MF_STRING,    IDM_FILL_FLOOD_ITER,   L"Flood Fill - Iterative (Stack)");
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hFill, L"Fi&lling");
 
-    // --- Curves ---
+    //  Curves 
     HMENU hCurv = CreatePopupMenu();
     AppendMenu(hCurv, MF_STRING, IDM_CURVE_CARDINAL, L"Cardinal Spline");
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hCurv, L"C&urves");
 
-    // --- Clipping ---
+    //  Clipping 
     HMENU hClip = CreatePopupMenu();
     AppendMenu(hClip, MF_STRING, IDM_CLIP_RECT,   L"Rectangle Window");
     AppendMenu(hClip, MF_STRING, IDM_CLIP_SQUARE, L"Square Window");
     AppendMenu(hClip, MF_STRING, IDM_CLIP_CIRCLE, L"Circle Window (Bonus)");
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hClip, L"Cli&pping");
 
-    // --- Smiley Faces ---
+    //  Smiley Faces 
     HMENU hFace = CreatePopupMenu();
     AppendMenu(hFace, MF_STRING, IDM_FACE_HAPPY, L"Happy Face");
     AppendMenu(hFace, MF_STRING, IDM_FACE_SAD,   L"Sad Face");
     AppendMenu(hMenuBar, MF_POPUP, (UINT_PTR)hFace, L"&Smiley Faces");
 
-    // --- Preferences (NEW) ---
+    //  Preferences  
     HMENU hPref = CreatePopupMenu();
     AppendMenu(hPref, MF_STRING,    IDM_PREF_BG_WHITE, L"White Background");
     AppendMenu(hPref, MF_SEPARATOR, 0, NULL);
@@ -218,9 +206,8 @@ static HMENU CreateAppMenu()
     return hMenuBar;
 }
 
-// -------------------------------------------------------
+
 // WndProc
-// -------------------------------------------------------
 LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
 {
     HDC hdc;
@@ -236,7 +223,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         break;
     }
 
-    // ---- Left click ----------------------------------------
+    //  Left click 
     case WM_LBUTTONDOWN:
     {
         int mx = LOWORD(lp);
@@ -248,7 +235,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         p.y = (double)my;
         g_mouseClicks.push_back(p);
 
-        // ---- TASK 5: ELLIPSES (2 clicks: centre then radius point) ----
+        // ELLIPSES (2 clicks: centre then radius point) 
         if (g_currentSelection >= 2001 && g_currentSelection <= 2003)
         {
             if (g_mouseClicks.size() == 2)
@@ -262,9 +249,10 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                 if (b < 1) b = 1;
 
                 ShapeRecord rec;
-                rec.type = g_currentType;
-                rec.x1 = cx - a; rec.y1 = cy - b;
-                rec.x2 = cx + a; rec.y2 = cy + b;
+                rec.type  = g_currentType;
+                rec.x1    = cx - a; rec.y1 = cy - b;
+                rec.x2    = cx + a; rec.y2 = cy + b;
+                rec.color = g_drawColor;
                 g_shapes.push_back(rec);
 
                 if (g_currentSelection == IDM_T5_DIRECT)   DrawEllipseDirect  (hdc, cx, cy, a, b, g_drawColor);
@@ -274,8 +262,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             }
         }
 
-        // ---- CIRCLES: 2 clicks (centre, radius point) ------
-        // Preserved exactly from the original main.cpp
+        //  CIRCLES: 2 clicks (centre, radius point) 
         else if (g_currentSelection >= 3001 && g_currentSelection <= 3005)
         {
             if (g_mouseClicks.size() == 2)
@@ -285,16 +272,39 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                 int xc = (int)g_mouseClicks[0].x;
                 int yc = (int)g_mouseClicks[0].y;
 
-                if (g_currentSelection == IDM_CIRC_DIRECT)   CircleDirect          (hdc, xc, yc, R, g_drawColor);
-                if (g_currentSelection == IDM_CIRC_POLAR)    CirclePolar           (hdc, xc, yc, R, g_drawColor);
-                if (g_currentSelection == IDM_CIRC_MIDPOINT) CircleMidpoint        (hdc, xc, yc, R, g_drawColor);
-                if (g_currentSelection == IDM_CIRC_IPOLAR)   CircleIterativePolar  (hdc, xc, yc, R, g_drawColor);
-                if (g_currentSelection == IDM_CIRC_MOD_MID)  CircleModifiedMidpoint(hdc, xc, yc, R, g_drawColor);
+                ShapeRecord rec;
+                rec.x1    = xc;
+                rec.y1    = yc;
+                rec.x2    = R;
+                rec.y2    = 0;
+                rec.color = g_drawColor;
+
+                if (g_currentSelection == IDM_CIRC_DIRECT) {
+                    rec.type = ShapeType::CIRCLE_DIRECT;
+                    CircleDirect          (hdc, xc, yc, R, g_drawColor);
+                }
+                if (g_currentSelection == IDM_CIRC_POLAR) {
+                    rec.type = ShapeType::CIRCLE_POLAR;
+                    CirclePolar           (hdc, xc, yc, R, g_drawColor);
+                }
+                if (g_currentSelection == IDM_CIRC_MIDPOINT) {
+                    rec.type = ShapeType::CIRCLE_MIDPOINT;
+                    CircleMidpoint        (hdc, xc, yc, R, g_drawColor);
+                }
+                if (g_currentSelection == IDM_CIRC_IPOLAR) {
+                    rec.type = ShapeType::CIRCLE_IPOLAR;
+                    CircleIterativePolar  (hdc, xc, yc, R, g_drawColor);
+                }
+                if (g_currentSelection == IDM_CIRC_MOD_MID) {
+                    rec.type = ShapeType::CIRCLE_MOD_MID;
+                    CircleModifiedMidpoint(hdc, xc, yc, R, g_drawColor);
+                }
+                g_shapes.push_back(rec);
                 g_mouseClicks.clear();
             }
         }
 
-        // ---- LINES: 2 clicks (P1, P2) ----------------------
+        //  LINES: 2 clicks (P1, P2) 
         else if (g_currentSelection >= 6001 && g_currentSelection <= 6003)
         {
             if (g_mouseClicks.size() == 2)
@@ -302,34 +312,71 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                 int x1 = (int)g_mouseClicks[0].x, y1 = (int)g_mouseClicks[0].y;
                 int x2 = (int)g_mouseClicks[1].x, y2 = (int)g_mouseClicks[1].y;
 
-                if (g_currentSelection == IDM_LINE_DDA)        DrawLineDDA       (hdc, x1, y1, x2, y2, g_drawColor);
-                if (g_currentSelection == IDM_LINE_MIDPOINT)   DrawLineMidpoint  (hdc, x1, y1, x2, y2, g_drawColor);
-                if (g_currentSelection == IDM_LINE_PARAMETRIC) DrawLineParametric(hdc, x1, y1, x2, y2, g_drawColor);
+                ShapeRecord rec;
+                rec.x1    = x1;
+                rec.y1    = y1;
+                rec.x2    = x2;
+                rec.y2    = y2;
+                rec.color = g_drawColor;
+
+                if (g_currentSelection == IDM_LINE_DDA) {
+                    rec.type = ShapeType::LINE_DDA;
+                    DrawLineDDA       (hdc, x1, y1, x2, y2, g_drawColor);
+                }
+                if (g_currentSelection == IDM_LINE_MIDPOINT) {
+                    rec.type = ShapeType::LINE_MIDPOINT;
+                    DrawLineMidpoint  (hdc, x1, y1, x2, y2, g_drawColor);
+                }
+                if (g_currentSelection == IDM_LINE_PARAMETRIC) {
+                    rec.type = ShapeType::LINE_PARAMETRIC;
+                    DrawLineParametric(hdc, x1, y1, x2, y2, g_drawColor);
+                }
+                g_shapes.push_back(rec);
                 g_mouseClicks.clear();
             }
         }
 
-        // ---- FILL CIRCLE WITH LINES: 1 click ---------------
+        //  FILL CIRCLE WITH LINES: 1 click 
         else if (g_currentSelection == IDM_FILL_CIRC_LINES)
         {
             ReleaseDC(hwnd, hdc);
             g_fillQuarter = AskFillQuarter(hwnd);
             hdc = GetDC(hwnd);
             FillCircleWithLines(hdc, mx, my, 80, g_fillQuarter, g_drawColor);
+
+            ShapeRecord rec;
+            rec.type  = ShapeType::FILL_CIRC_LINES;
+            rec.x1    = mx;
+            rec.y1    = my;
+            rec.x2    = 80;
+            rec.y2    = g_fillQuarter;
+            rec.color = g_drawColor;
+            g_shapes.push_back(rec);
+
             g_mouseClicks.clear();
         }
 
-        // ---- FILL CIRCLE WITH CIRCLES: 1 click -------------
+        //  FILL CIRCLE WITH CIRCLES: 1 click 
         else if (g_currentSelection == IDM_FILL_CIRC_CIRCLES)
         {
             ReleaseDC(hwnd, hdc);
             g_fillQuarter = AskFillQuarter(hwnd);
             hdc = GetDC(hwnd);
             FillCircleWithCircles(hdc, mx, my, 80, g_fillQuarter, g_drawColor);
+
+            ShapeRecord rec;
+            rec.type  = ShapeType::FILL_CIRC_CIRCLES;
+            rec.x1    = mx;
+            rec.y1    = my;
+            rec.x2    = 80;
+            rec.y2    = g_fillQuarter;
+            rec.color = g_drawColor;
+            g_shapes.push_back(rec);
+
             g_mouseClicks.clear();
         }
 
-        // ---- FILL SQUARE HERMITE: 2 clicks (TL, BR) --------
+        //  FILL SQUARE HERMITE: 2 clicks  
         else if (g_currentSelection == IDM_FILL_SQ_HERMITE)
         {
             if (g_mouseClicks.size() == 2)
@@ -343,11 +390,21 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                 HBRUSH hOld = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
                 Rectangle(hdc, x0, y0, x0 + side, y0 + side);
                 SelectObject(hdc, hOld);
+
+                ShapeRecord rec;
+                rec.type  = ShapeType::FILL_SQ_HERMITE;
+                rec.x1    = x0;
+                rec.y1    = y0;
+                rec.x2    = side;
+                rec.y2    = 0;
+                rec.color = g_drawColor;
+                g_shapes.push_back(rec);
+
                 g_mouseClicks.clear();
             }
         }
 
-        // ---- FILL RECT BEZIER: 2 clicks (TL, BR) -----------
+        //  FILL RECT BEZIER: 2 clicks 
         else if (g_currentSelection == IDM_FILL_RECT_BEZIER)
         {
             if (g_mouseClicks.size() == 2)
@@ -360,11 +417,21 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                 HBRUSH hOld = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
                 Rectangle(hdc, x0, y0, x0 + w, y0 + h);
                 SelectObject(hdc, hOld);
+
+                ShapeRecord rec;
+                rec.type  = ShapeType::FILL_RECT_BEZIER;
+                rec.x1    = x0;
+                rec.y1    = y0;
+                rec.x2    = w;
+                rec.y2    = h;
+                rec.color = g_drawColor;
+                g_shapes.push_back(rec);
+
                 g_mouseClicks.clear();
             }
         }
 
-        // ---- CONVEX / NON-CONVEX: collect vertices ---------
+        // CONVEX / NON-CONVEX: collect vertices 
         // Right-click triggers the actual fill
         else if (g_currentSelection == IDM_FILL_CONVEX ||
                  g_currentSelection == IDM_FILL_NONCONVEX)
@@ -372,11 +439,11 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             Ellipse(hdc, mx - 3, my - 3, mx + 3, my + 3); // vertex dot feedback
         }
 
-        // ---- FLOOD FILL: 1 click (seed point) --------------
+        //  FLOOD FILL: 1 click 
         else if (g_currentSelection == IDM_FILL_FLOOD_REC ||
                  g_currentSelection == IDM_FILL_FLOOD_ITER)
         {
-            // Sample the color at the seed point - this is what gets replaced
+            // Sample the color at the seed point
             COLORREF targetColor = GetPixel(hdc, mx, my);
             // Don't fill if we clicked on the border or already filled area
             if (targetColor != g_drawColor)
@@ -385,18 +452,29 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                     FloodFillRecursive(hdc, mx, my, g_drawColor, targetColor);
                 else
                     FloodFillIterative(hdc, mx, my, g_drawColor, targetColor);
+
+                ShapeRecord rec;
+                rec.type  = (g_currentSelection == IDM_FILL_FLOOD_REC)
+                            ? ShapeType::FILL_FLOOD_RECURSIVE
+                            : ShapeType::FILL_FLOOD_ITERATIVE;
+                rec.x1    = mx;
+                rec.y1    = my;
+                rec.x2    = static_cast<int>(targetColor);
+                rec.y2    = 0;
+                rec.color = g_drawColor;
+                g_shapes.push_back(rec);
             }
             g_mouseClicks.clear();
         }
 
-        // ---- CARDINAL SPLINE: collect control points -------
+        //  CARDINAL SPLINE: collect control points 
         // Right-click triggers draw
         else if (g_currentSelection == IDM_CURVE_CARDINAL)
         {
             Ellipse(hdc, mx - 3, my - 3, mx + 3, my + 3); // control point dot
         }
 
-        // ---- CLIPPING (unchanged from original) ------------
+        //  CLIPPING - collect 2 points for clipping window, then subsequent points for shape to clip. Right-click triggers the clip operation.
         else if (g_currentSelection >= 4001 && g_currentSelection <= 4003)
         {
             if (g_mouseClicks.size() == 2)
@@ -424,11 +502,22 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             }
         }
 
-        // ---- SMILEY FACES: 1 click -------------------------
+        //  SMILEY FACES: 1 click 
         else if (g_currentSelection == IDM_FACE_HAPPY ||
                  g_currentSelection == IDM_FACE_SAD)
         {
-            DrawSmiley(hdc, mx, my, (g_currentSelection == IDM_FACE_HAPPY));
+            bool happy = (g_currentSelection == IDM_FACE_HAPPY);
+            DrawSmiley(hdc, mx, my, happy);
+
+            ShapeRecord rec;
+            rec.type  = happy ? ShapeType::FACE_HAPPY : ShapeType::FACE_SAD;
+            rec.x1    = mx;
+            rec.y1    = my;
+            rec.x2    = 0;
+            rec.y2    = 0;
+            rec.color = g_drawColor;
+            g_shapes.push_back(rec);
+
             g_mouseClicks.clear();
         }
 
@@ -436,7 +525,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         break;
     }
 
-    // ---- Right click: finalise multi-click operations ------
+    // Right click: finalise multi-click operations 
     case WM_RBUTTONDOWN:
     {
         hdc = GetDC(hwnd);
@@ -445,9 +534,17 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         if (g_currentSelection == IDM_CURVE_CARDINAL && g_mouseClicks.size() >= 2)
         {
             std::vector<CurvePoint> cpts;
+            ShapeRecord rec;
+            rec.type  = ShapeType::CARDINAL_SPLINE;
+            rec.color = g_drawColor;
+
             for (auto& p : g_mouseClicks)
+            {
                 cpts.push_back({ (int)p.x, (int)p.y });
+                rec.points.push_back({ (int)p.x, (int)p.y });
+            }
             DrawCardinalSpline(hdc, cpts, 0.0, 60, g_drawColor);
+            g_shapes.push_back(rec);
             g_mouseClicks.clear();
             printf(">> Cardinal Spline drawn through %d control points.\n", (int)cpts.size());
         }
@@ -458,8 +555,17 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                  g_mouseClicks.size() >= 3)
         {
             std::vector<FillPoint> poly;
+            ShapeRecord rec;
+            rec.type  = (g_currentSelection == IDM_FILL_CONVEX)
+                        ? ShapeType::CONVEX_POLYGON
+                        : ShapeType::NONCONVEX_POLYGON;
+            rec.color = g_drawColor;
+
             for (auto& p : g_mouseClicks)
+            {
                 poly.push_back({ (int)p.x, (int)p.y });
+                rec.points.push_back({ (int)p.x, (int)p.y });
+            }
 
             if (g_currentSelection == IDM_FILL_CONVEX)
                 FillConvexPolygon   (hdc, poly, g_drawColor);
@@ -470,11 +576,12 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             MoveToEx(hdc, poly.back().x, poly.back().y, NULL);
             for (auto& p : poly) LineTo(hdc, p.x, p.y);
 
+            g_shapes.push_back(rec);
             g_mouseClicks.clear();
             printf(">> Polygon filled.\n");
         }
 
-        // Clipping right-click handler (unchanged from original)
+        // Clipping right-click handler 
         else if (g_currentSelection >= 4001 && g_currentSelection <= 4003 &&
                  g_mouseClicks.size() >= 3)
         {
@@ -496,13 +603,33 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                 int px = (int)g_mouseClicks[2].x;
                 int py = (int)g_mouseClicks[2].y;
                 bool inside = false;
+                ShapeRecord rec;
+                rec.color = RGB(255, 0, 0);
 
                 if (g_currentSelection == IDM_CLIP_CIRCLE)
+                {
                     inside = (sqrt(pow(px - xmin, 2) + pow(py - ymin, 2)) <= R);
+                    rec.type = ShapeType::CLIP_POINT_CIRCLE;
+                    rec.x1   = px;
+                    rec.y1   = py;
+                    rec.x2   = xmin;
+                    rec.y2   = ymin;
+                    rec.points.push_back({ xmin, ymin });
+                    rec.points.push_back({ R, 0 });
+                }
                 else
+                {
                     inside = (px >= xmin && px <= xmax && py >= ymin && py <= ymax);
+                    rec.type = ShapeType::CLIP_POINT_RECT;
+                    rec.x1   = px;
+                    rec.y1   = py;
+                    rec.x2   = xmin;
+                    rec.y2   = ymin;
+                    rec.points.push_back({ xmax, ymax });
+                }
 
                 if (inside) SetPixel(hdc, px, py, RGB(255, 0, 0));
+                g_shapes.push_back(rec);
                 printf(">> Point clipped.\n");
             }
             // CASE B: line clipping
@@ -510,6 +637,9 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             {
                 int x1 = (int)g_mouseClicks[2].x, y1 = (int)g_mouseClicks[2].y;
                 int x2 = (int)g_mouseClicks[3].x, y2 = (int)g_mouseClicks[3].y;
+                ShapeRecord rec;
+                rec.x1 = x1; rec.y1 = y1; rec.x2 = x2; rec.y2 = y2;
+                rec.color = RGB(0,0,0);
 
                 if (g_currentSelection == IDM_CLIP_CIRCLE)
                 {
@@ -533,22 +663,40 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                             MoveToEx(hdc, (int)(x1 + ts * dx), (int)(y1 + ts * dy), NULL);
                             LineTo  (hdc, (int)(x1 + te * dx), (int)(y1 + te * dy));
                             DeleteObject(hPen);
+
+                            rec.type = ShapeType::CLIP_LINE_CIRCLE;
+                            rec.points.push_back({ (int)cx, (int)cy });
+                            rec.points.push_back({ R, 0 });
+                            g_shapes.push_back(rec);
                         }
                     }
                 }
                 else
                 {
                     ClipLineRect(hdc, x1, y1, x2, y2, xmin, ymin, xmax, ymax);
+                    rec.type = ShapeType::CLIP_LINE_RECT;
+                    rec.points.push_back({ xmin, ymin });
+                    rec.points.push_back({ xmax, ymax });
+                    g_shapes.push_back(rec);
                 }
             }
             // CASE C: polygon clipping
             else if (g_mouseClicks.size() >= 5 && g_currentSelection != IDM_CLIP_CIRCLE)
             {
                 std::vector<Point> vlist;
+                ShapeRecord rec;
+                rec.type  = ShapeType::CLIP_POLYGON_RECT;
+                rec.x1    = xmin;
+                rec.y1    = ymin;
+                rec.x2    = xmax;
+                rec.y2    = ymax;
+                rec.color = RGB(0,0,0);
+
                 for (size_t i = 2; i < g_mouseClicks.size(); i++)
                 {
                     Point tp; tp.x = g_mouseClicks[i].x; tp.y = g_mouseClicks[i].y;
                     vlist.push_back(tp);
+                    rec.points.push_back({ tp.x, tp.y });
                 }
 
                 int edges[] = { xmin, ymin, xmax, ymax };
@@ -593,6 +741,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
                         p1 = p2;
                     }
                 }
+                g_shapes.push_back(rec);
                 printf(">> Polygon clipped.\n");
             }
 
@@ -603,7 +752,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         break;
     }
 
-    // ---- Menu commands -------------------------------------
+    //  Menu commands 
     case WM_COMMAND:
     {
         int id = LOWORD(wp);
@@ -615,7 +764,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
         case IDM_FILE_LOAD:  LoadFromFile(hwnd); break;
         case IDM_FILE_EXIT:  DestroyWindow(hwnd); break;
 
-        // ---- Preferences -----------------------------------
+        //  Preferences 
         case IDM_PREF_BG_WHITE:
             PrefSetWhiteBackground(hwnd);
             printf(">> Background set to white.\n");
@@ -654,12 +803,12 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             g_currentSelection = id;
             g_mouseClicks.clear();
 
-            // Ellipse type tracking for Task 1 persistence
+            // Ellipse type selection updates the current shape type for drawing and recording
             if (g_currentSelection == IDM_T5_DIRECT)   g_currentType = ShapeType::ELLIPSE_DIRECT;
             if (g_currentSelection == IDM_T5_POLAR)    g_currentType = ShapeType::ELLIPSE_POLAR;
             if (g_currentSelection == IDM_T5_MIDPOINT) g_currentType = ShapeType::ELLIPSE_MIDPOINT;
 
-            // Refresh ellipse checkmarks
+            // Update menu check states for ellipse selection 
             {
                 HMENU hMenu = GetMenu(hwnd);
                 CheckMenuItem(hMenu, IDM_T5_DIRECT,
@@ -681,9 +830,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
     return 0;
 }
 
-// -------------------------------------------------------
 // WinMain
-// -------------------------------------------------------
 int APIENTRY WinMain(HINSTANCE h, HINSTANCE p, LPSTR c, int nsh)
 {
     AllocConsole();
