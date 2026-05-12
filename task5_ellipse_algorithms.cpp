@@ -1,13 +1,7 @@
-// task5_ellipse_algorithms.cpp
-// Task 5 – Three ellipse-drawing algorithms implemented from scratch
-// (no GDI Ellipse() is used; every pixel is placed with SetPixel).
 #include "task5_ellipse_algorithms.h"
 #include <cmath>
 
-// -------------------------------------------------------
-// Internal helper – plot four symmetric points of an ellipse
-// around centre (cx, cy) given the offset pair (dx, dy).
-// -------------------------------------------------------
+//draws the 4 symmetric points of the ellipse for a given (dx, dy) offset
 static inline void Draw4Points(HDC hdc, int cx, int cy,
                                      int dx, int dy, COLORREF color)
 {
@@ -17,30 +11,32 @@ static inline void Draw4Points(HDC hdc, int cx, int cy,
     SetPixel(hdc, cx - dx, cy - dy, color);
 }
 
-// =======================================================
-// a) Direct (Cartesian equation) method
-//    Iterates x from -a to a, computes y from the ellipse
-//    equation  y = b * sqrt(1 - (x/a)^2)  and plots symmetrically.
-// =======================================================
+// direct algo
 void DrawEllipseDirect(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
 {
+    // case where the ellipse collapses to a line or point
     if (a == 0 || b == 0) return;
 
+    // Precompute squares to avoid repeated multiplication
     double a2 = static_cast<double>(a) * a;
     double b2 = static_cast<double>(b) * b;
 
-    // Region 1: iterate over x-axis (-a … +a)
+    // iterate over x-axis to ensure no gaps
     for (int dx = -a; dx <= a; ++dx)
     {
+        // Compute corresponding y using the ellipse equation: (x^2/a^2) + (y^2/b^2) = 1
         double inner = 1.0 - (static_cast<double>(dx) * dx) / a2;
+        // Due to rounding errors, inner might become slightly negative, make it zero
         if (inner < 0.0) inner = 0.0;
+        // Compute corresponding y using the ellipse equation: (x^2/a^2) + (y^2/b^2) = 1
         int dy = static_cast<int>(std::round(b * std::sqrt(inner)));
         Draw4Points(hdc, cx, cy, dx, dy, color);
     }
 
-    // Region 2: iterate over y-axis (-b … +b) to fill in the steep parts
+    // iterate over y-axis to ensure no gaps 
     for (int dy = -b; dy <= b; ++dy)
     {
+        //same steps for y-axis
         double inner = 1.0 - (static_cast<double>(dy) * dy) / b2;
         if (inner < 0.0) inner = 0.0;
         int dx = static_cast<int>(std::round(a * std::sqrt(inner)));
@@ -48,19 +44,17 @@ void DrawEllipseDirect(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
     }
 }
 
-// =======================================================
-// b) Polar / parametric method
-//    Steps angle θ from 0 to 2π using a step small enough
-//    that no pixels are skipped:  step = 1 / max(a, b).
-// =======================================================
+// polar algo
 void DrawEllipsePolar(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
 {
-    if (a == 0 || b == 0) return;
+    if (a == 0 || b == 0) return;     // case where the ellipse collapses to a line or point
 
-    // Choose step size so that the arc length per step ≈ 1 pixel
+    // Choose step size so that the arc length per step approximates 1 pixel
     int r = (a > b) ? a : b;
     double step = 1.0 / r;
 
+    // Iterate over angle from 0 to 2π, compute (x,y) using parametric form:
+    // x = cx + a*cos(theta), y = cy + b*sin(theta)
     const double TWO_PI = 2.0 * 3.14159265358979323846;
     for (double theta = 0.0; theta < TWO_PI; theta += step)
     {
@@ -70,65 +64,62 @@ void DrawEllipsePolar(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
     }
 }
 
-// =======================================================
-// c) Midpoint (Bresenham-style) method
-//    Uses integer arithmetic with two decision parameters
-//    (one for each region).  Based on the implicit form
-//    F(x, y) = b²x² + a²y² – a²b²
-// =======================================================
+// midpoint algo
 void DrawEllipseMidpoint(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
 {
-    if (a == 0 || b == 0) return;
+    if (a == 0 || b == 0) return; // case where the ellipse collapses to a line or point
 
+    // Precompute squares to avoid repeated multiplication
     long long a2 = static_cast<long long>(a) * a;
     long long b2 = static_cast<long long>(b) * b;
 
     int x = 0;
     int y = b;
 
-    // ---- Region 1: |slope| < 1  (from top to the slope = -1 point) ----
-    // Initial decision parameter p1 = b² - a²b + a²/4
-    // (using integer approximation for a²/4)
-    long long p1 = b2 - a2 * b + (a2 + 2) / 4;  // round(a²/4)
+    // case1 |slope| <= 1  
+    // Initial decision parameter p1 = b^2 - a^2*b + a^2/4
+    long long p1 = b2 - a2 * b + (a2 + 2) / 4;  
 
+    //while we are in the first region, we step through x and decide whether to move vertically based on p1
     while (2LL * b2 * x < 2LL * a2 * y)
     {
         Draw4Points(hdc, cx, cy, x, y, color);
 
         if (p1 < 0)
         {
-            // Move East
+            // Move vertically only
             ++x;
             p1 += 2LL * b2 * x + b2;
         }
         else
         {
-            // Move South-East
+            // Move diagonally (x+1, y-1)
             ++x;
             --y;
             p1 += 2LL * b2 * x - 2LL * a2 * y + b2;
         }
     }
 
-    // ---- Region 2: |slope| > 1  (from the slope = -1 point to rightmost) ----
-    // Initial decision parameter p2 = b²(x+1/2)² + a²(y-1)² - a²b²
+    // case2 |slope| > 1
+    // Initial decision parameter p2 = b^2*(x+1/2)^2 + a^2*(y-1)^2 - a^2*b^2
     long long p2 = b2 * (2LL * x + 1) * (2LL * x + 1) / 4
                  + a2 * (y - 1LL) * (y - 1LL)
                  - a2 * b2;
 
+    // step through y and decide whether to move horizontally based on p2
     while (y >= 0)
     {
         Draw4Points(hdc, cx, cy, x, y, color);
 
         if (p2 > 0)
         {
-            // Move South
+            // Move vertically only
             --y;
             p2 -= 2LL * a2 * y + a2;
         }
         else
         {
-            // Move South-East
+            // Move diagonally (x+1, y-1)
             ++x;
             --y;
             p2 += 2LL * b2 * x - 2LL * a2 * y + a2;
@@ -136,13 +127,7 @@ void DrawEllipseMidpoint(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
     }
 }
 
-// =======================================================
-// Convenience wrapper – draws all three algorithms with
-// different colours, offset horizontally so they are visible.
-//   Blue   = Direct
-//   Green  = Polar
-//   Red    = Midpoint
-// =======================================================
+// Utility function to draw all three ellipses for comparison
 void DrawAllEllipses(HDC hdc, int cx, int cy, int a, int b, int offset)
 {
     // Direct  – centred at (cx - offset, cy)
