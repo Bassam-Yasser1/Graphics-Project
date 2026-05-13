@@ -65,14 +65,20 @@
 #define IDM_LINE_PARAMETRIC 6003
 
 // Filling
-#define IDM_FILL_CIRC_LINES   7001
-#define IDM_FILL_CIRC_CIRCLES 7002
 #define IDM_FILL_SQ_HERMITE   7003
 #define IDM_FILL_RECT_BEZIER  7004
 #define IDM_FILL_CONVEX       7005
 #define IDM_FILL_NONCONVEX    7006
 #define IDM_FILL_FLOOD_REC    7007
 #define IDM_FILL_FLOOD_ITER   7008
+#define IDM_FILL_CIRC_LINES_Q1   7011
+#define IDM_FILL_CIRC_LINES_Q2   7012
+#define IDM_FILL_CIRC_LINES_Q3   7013
+#define IDM_FILL_CIRC_LINES_Q4   7014
+#define IDM_FILL_CIRC_CIRC_Q1   7015
+#define IDM_FILL_CIRC_CIRC_Q2   7016
+#define IDM_FILL_CIRC_CIRC_Q3   7017
+#define IDM_FILL_CIRC_CIRC_Q4   7018
 
 // Curves
 #define IDM_CURVE_CARDINAL    8001
@@ -96,26 +102,6 @@ static COLORREF g_drawColor = RGB(0, 0, 0);
 // Quarter for circle-fill functions (1=top-right, 2=top-left, 3=bottom-left, 4=bottom-right)
 static int g_fillQuarter = 1;
 
-// Ask fill quarter via cascaded MessageBox
-static int AskFillQuarter(HWND hwnd)
-{
-    int choice = MessageBox(hwnd,
-        L"Select filling quarter:\n"
-        L"Yes    = Quarter 1 (Top-Right)\n"
-        L"No     = Quarter 2 (Top-Left)\n"
-        L"Cancel = Quarter 3 or 4...",
-        L"Fill Quarter", MB_YESNOCANCEL | MB_ICONQUESTION);
-
-    if      (choice == IDYES) return 1;
-    else if (choice == IDNO)  return 2;
-    else
-    {
-        int c2 = MessageBox(hwnd,
-            L"Yes = Quarter 3 (Bottom-Left)\nNo  = Quarter 4 (Bottom-Right)",
-            L"Fill Quarter", MB_YESNO | MB_ICONQUESTION);
-        return (c2 == IDYES) ? 3 : 4;
-    }
-}
 
 // CreateAppMenu
 static HMENU CreateAppMenu()
@@ -157,8 +143,18 @@ static HMENU CreateAppMenu()
 
     //  Filling 
     HMENU hFill = CreatePopupMenu();
-    AppendMenu(hFill, MF_STRING,    IDM_FILL_CIRC_LINES,   L"Fill Circle with Lines (Quarter)");
-    AppendMenu(hFill, MF_STRING,    IDM_FILL_CIRC_CIRCLES, L"Fill Circle with Circles (Quarter)");
+    HMENU hFillCircLines = CreatePopupMenu();
+    AppendMenu(hFillCircLines, MF_STRING, IDM_FILL_CIRC_LINES_Q1, L"Quarter 1 (Top-Right)");
+    AppendMenu(hFillCircLines, MF_STRING, IDM_FILL_CIRC_LINES_Q2, L"Quarter 2 (Top-Left)");
+    AppendMenu(hFillCircLines, MF_STRING, IDM_FILL_CIRC_LINES_Q3, L"Quarter 3 (Bottom-Left)");
+    AppendMenu(hFillCircLines, MF_STRING, IDM_FILL_CIRC_LINES_Q4, L"Quarter 4 (Bottom-Right)");
+    AppendMenu(hFill, MF_POPUP, (UINT_PTR)hFillCircLines, L"Fill Circle with Lines");
+    HMENU hFillCircCircles = CreatePopupMenu();
+    AppendMenu(hFillCircCircles, MF_STRING, IDM_FILL_CIRC_CIRC_Q1, L"Quarter 1 (Top-Right)");
+    AppendMenu(hFillCircCircles, MF_STRING, IDM_FILL_CIRC_CIRC_Q2, L"Quarter 2 (Top-Left)");
+    AppendMenu(hFillCircCircles, MF_STRING, IDM_FILL_CIRC_CIRC_Q3, L"Quarter 3 (Bottom-Left)");
+    AppendMenu(hFillCircCircles, MF_STRING, IDM_FILL_CIRC_CIRC_Q4, L"Quarter 4 (Bottom-Right)");
+    AppendMenu(hFill, MF_POPUP, (UINT_PTR)hFillCircCircles, L"Fill Circle with Circles");
     AppendMenu(hFill, MF_SEPARATOR, 0, NULL);
     AppendMenu(hFill, MF_STRING,    IDM_FILL_SQ_HERMITE,   L"Fill Square - Hermite [Vertical]");
     AppendMenu(hFill, MF_STRING,    IDM_FILL_RECT_BEZIER,  L"Fill Rectangle - Bezier [Horizontal]");
@@ -336,43 +332,14 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT mcode, WPARAM wp, LPARAM lp)
             }
         }
 
-        //  FILL CIRCLE WITH LINES: 1 click 
-        else if (g_currentSelection == IDM_FILL_CIRC_LINES)
+        //  FILL CIRCLE WITH LINES / CIRCLES: 1 click 
+                else if (g_currentSelection >= 7011 && g_currentSelection <= 7018)
         {
-            ReleaseDC(hwnd, hdc);
-            g_fillQuarter = AskFillQuarter(hwnd);
-            hdc = GetDC(hwnd);
-            FillCircleWithLines(hdc, mx, my, 80, g_fillQuarter, g_drawColor);
-
-            ShapeRecord rec;
-            rec.type  = ShapeType::FILL_CIRC_LINES;
-            rec.x1    = mx;
-            rec.y1    = my;
-            rec.x2    = 80;
-            rec.y2    = g_fillQuarter;
-            rec.color = g_drawColor;
-            g_shapes.push_back(rec);
-
-            g_mouseClicks.clear();
-        }
-
-        //  FILL CIRCLE WITH CIRCLES: 1 click 
-        else if (g_currentSelection == IDM_FILL_CIRC_CIRCLES)
-        {
-            ReleaseDC(hwnd, hdc);
-            g_fillQuarter = AskFillQuarter(hwnd);
-            hdc = GetDC(hwnd);
-            FillCircleWithCircles(hdc, mx, my, 80, g_fillQuarter, g_drawColor);
-
-            ShapeRecord rec;
-            rec.type  = ShapeType::FILL_CIRC_CIRCLES;
-            rec.x1    = mx;
-            rec.y1    = my;
-            rec.x2    = 80;
-            rec.y2    = g_fillQuarter;
-            rec.color = g_drawColor;
-            g_shapes.push_back(rec);
-
+            int quarter = ((g_currentSelection - 1) % 4) + 1;
+            if (g_currentSelection <= 7014)
+                FillCircleWithLines  (hdc, mx, my, 80, quarter, g_drawColor);
+            else
+                FillCircleWithCircles(hdc, mx, my, 80, quarter, g_drawColor);
             g_mouseClicks.clear();
         }
 
