@@ -27,21 +27,22 @@ std::vector<ShapeRecord> g_shapes;
 // OPENFILENAME struct for file dialogs, with appropriate flags for save vs open
 static OPENFILENAME BuildOFN(HWND hwnd, wchar_t* szFile, bool forSave)
 {
-    OPENFILENAME ofn{};
-    ofn.lStructSize  = sizeof(ofn);
+    OPENFILENAME ofn{}; // zero-initialize the struct
+    ofn.lStructSize  = sizeof(ofn); // حجم ال struct
     ofn.hwndOwner    = hwnd;
-    ofn.lpstrFile    = szFile;
-    ofn.nMaxFile     = MAX_PATH;
-    ofn.lpstrFilter  = L"Shape Files (*.shp)\0*.shp\0All Files (*.*)\0*.*\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrDefExt  = L"shp";
-    ofn.Flags        = forSave
+    ofn.lpstrFile    = szFile; // buffer to receive the file path
+    ofn.nMaxFile     = MAX_PATH; // maximum size of the file path
+    ofn.lpstrFilter  = L"Shape Files (*.shp)\0*.shp\0All Files (*.*)\0*.*\0"; // filter for file types
+    ofn.nFilterIndex = 1; // default to the first filter (Shape Files)
+    ofn.lpstrDefExt  = L"shp"; // default extension if user doesn't specify
+    ofn.Flags        = forSave // different flags for save vs open: save should prompt to overwrite, open should require existing file
                          ? (OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT)
                          : (OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST);
     return ofn;
 }
 
 // convert between ShapeType enum and string for file I/O
+// عشان لما يتعمل سيف يبقي بشكل سنرينج مفهوم مش رقم، ولما يتعمل لود نقدر نرجع من السترينج للنوع الصحيح
 static const char* ShapeTypeToStr(ShapeType t)
 {
     switch(t){
@@ -223,15 +224,16 @@ void ClearScreen(HWND hwnd)
 void SaveToFile(HWND hwnd)
 { // Open a Save File dialog and write the shape records to the chosen file in a simple text format.
     // Each line represents one shape, starting with the shape type and parameters, followed by the list of points if applicable.
-    wchar_t szFile[MAX_PATH] = {};
-    OPENFILENAME ofn = BuildOFN(hwnd, szFile, /*forSave=*/true);
+    wchar_t szFile[MAX_PATH] = {}; // buffer to receive the file path
+    OPENFILENAME ofn = BuildOFN(hwnd, szFile, /*forSave=*/true); 
 
     if (!GetSaveFileName(&ofn))
         return;  // user cancelled
 
     // Convert wchar path to narrow string for fstream
-    FILE* file = nullptr;
-    errno_t err = _wfopen_s(&file, szFile, L"w");
+    // فتح الملف للكتابة و لو موجود هيعمل overwrite
+    FILE* file = nullptr; 
+    errno_t err = _wfopen_s(&file, szFile, L"w"); 
     if (err != 0 || !file)
     {
         MessageBox(hwnd, L"Could not open file for writing.", L"Save Error", MB_ICONERROR);
@@ -265,7 +267,7 @@ void LoadFromFile(HWND hwnd)
         return;  // user cancelled
 
     FILE* file = nullptr;
-    errno_t err = _wfopen_s(&file, szFile, L"r");
+    errno_t err = _wfopen_s(&file, szFile, L"r"); // فتح الملف للقراءة
     if (err != 0 || !file)
     {
         MessageBox(hwnd, L"Could not open file for reading.", L"Load Error", MB_ICONERROR);
@@ -274,7 +276,7 @@ void LoadFromFile(HWND hwnd)
 
     g_shapes.clear();
 
-    char buffer[1024];
+    char buffer[1024]; // buffer to read each line, assuming max line length is less than 1024 characters
     while (fgets(buffer, sizeof(buffer), file))
     {
         if (buffer[0] == '\n' || buffer[0] == '\0')

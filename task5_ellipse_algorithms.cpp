@@ -12,6 +12,7 @@ static inline void Draw4Points(HDC hdc, int cx, int cy,
 }
 
 // direct algo
+// a is the horizontal radius, b is the vertical radius, (cx, cy) is the center of the ellipse
 void DrawEllipseDirect(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
 {
     // case where the ellipse collapses to a line or point
@@ -55,13 +56,27 @@ void DrawEllipsePolar(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
 
     // Iterate over angle from 0 to 2π, compute (x,y) using parametric form:
     // x = cx + a*cos(theta), y = cy + b*sin(theta)
-    const double TWO_PI = 2.0 * 3.14159265358979323846;
-    for (double theta = 0.0; theta < TWO_PI; theta += step)
+    // const double TWO_PI = 2.0 * 3.14159265358979323846;
+    // for (double theta = 0.0; theta < TWO_PI; theta += step)
+    // {
+    //     int dx = static_cast<int>(std::round(a * std::cos(theta)));
+    //     int dy = static_cast<int>(std::round(b * std::sin(theta)));
+    //     SetPixel(hdc, cx + dx, cy + dy, color);
+    // }
+
+    // Iterate over angle from 0 to π/2 and use symmetry to draw all 4 points, which is more efficient and avoids gaps at the poles
+    const double HALF_PI = 3.14159265358979323846 / 2.0;
+
+    for (double theta = 0.0; theta <= HALF_PI; theta += step)
     {
+        // Parametric ellipse equations
         int dx = static_cast<int>(std::round(a * std::cos(theta)));
         int dy = static_cast<int>(std::round(b * std::sin(theta)));
-        SetPixel(hdc, cx + dx, cy + dy, color);
+
+        // Draw the 4 symmetric points
+        Draw4Points(hdc, cx, cy, dx, dy, color);
     }
+    
 }
 
 // midpoint algo
@@ -125,17 +140,4 @@ void DrawEllipseMidpoint(HDC hdc, int cx, int cy, int a, int b, COLORREF color)
             p2 += 2LL * b2 * x - 2LL * a2 * y + a2;
         }
     }
-}
-
-// Utility function to draw all three ellipses for comparison
-void DrawAllEllipses(HDC hdc, int cx, int cy, int a, int b, int offset)
-{
-    // Direct  – centred at (cx - offset, cy)
-    DrawEllipseDirect  (hdc, cx - offset,cy, a, b, RGB(0,0,220));
-
-    // Polar   – centred at (cx, cy)
-    DrawEllipsePolar   (hdc, cx,cy, a, b, RGB(0,180,0));
-
-    // Midpoint – centred at (cx + offset, cy)
-    DrawEllipseMidpoint(hdc, cx + offset,cy, a, b, RGB(220,0,0));
 }

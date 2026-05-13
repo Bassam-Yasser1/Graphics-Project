@@ -11,4 +11,3 @@ void DrawEllipsePolar(HDC hdc, int cx, int cy, int a, int b, COLORREF color);
 // midpoint uses decision parameters to step through the ellipse, but needs to handle two regions based on slope to avoid gaps  
 void DrawEllipseMidpoint(HDC hdc, int cx, int cy, int a, int b, COLORREF color);
 
-void DrawAllEllipses(HDC hdc, int cx, int cy, int a, int b, int offset);
