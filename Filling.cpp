@@ -10,10 +10,10 @@ static inline bool InQuarter(int dx, int dy, int quarter)
 {
     switch (quarter)
     {
-    case 1: return dx >= 0 && dy <= 0;
-    case 2: return dx <= 0 && dy <= 0;
-    case 3: return dx <= 0 && dy >= 0;
-    case 4: return dx >= 0 && dy >= 0;
+    case 3: return dx >= 0 && dy <= 0;
+    case 4: return dx <= 0 && dy <= 0;
+    case 1: return dx <= 0 && dy >= 0;
+    case 2: return dx >= 0 && dy >= 0;
     default: return true; 
     }
 }
